@@ -1,65 +1,72 @@
-import Image from "next/image";
+'use client'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden"
+      style={{ background: 'linear-gradient(160deg, var(--cream) 0%, var(--parchment) 50%, var(--cream) 100%)' }}>
+
+      <div className="absolute top-20 left-10 w-64 h-64 rounded-full opacity-10 float"
+        style={{ background: 'radial-gradient(circle, var(--terracotta), transparent)', animationDelay: '0s' }} />
+      <div className="absolute bottom-20 right-10 w-80 h-80 rounded-full opacity-10 float"
+        style={{ background: 'radial-gradient(circle, var(--sage), transparent)', animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/4 w-40 h-40 rounded-full opacity-5 float"
+        style={{ background: 'radial-gradient(circle, var(--gold), transparent)', animationDelay: '1s' }} />
+
+      <motion.div
+        className="text-center max-w-lg relative z-10"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+      >
+        <motion.div
+          className="text-7xl mb-6 float inline-block"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          ✦
+        </motion.div>
+
+        <h1 className="text-7xl font-bold mb-4 tracking-widest"
+          style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+          I AM
+        </h1>
+
+        <p className="text-xl mb-3 font-light" style={{ color: 'var(--text-secondary)' }}>
+          Discover who you are becoming.
+        </p>
+
+        <p className="text-base mb-12 leading-relaxed font-light" style={{ color: 'var(--text-muted)' }}>
+          A personal journey through astrology, spirituality, values, and meaning —
+          with daily insights to guide your way.
+        </p>
+
+        <div className="flex flex-col gap-4">
+          <Link href="/auth?mode=signup">
+            <motion.button
+              className="w-full py-4 px-8 rounded-2xl text-white font-medium text-lg transition-all"
+              style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
+              whileHover={{ scale: 1.02, boxShadow: '0 8px 30px rgba(196, 113, 74, 0.4)' }}
+              whileTap={{ scale: 0.98 }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Begin Your Journey
+            </motion.button>
+          </Link>
+
+          <Link href="/auth?mode=signin">
+            <button className="w-full py-3 px-8 text-base font-light transition-colors"
+              style={{ color: 'var(--text-muted)' }}>
+              Already on the path? Sign in
+            </button>
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="mt-16 flex justify-center gap-8 text-2xl opacity-30">
+          <span>♑</span><span>🐉</span><span>🕯️</span><span>🃏</span><span>💎</span><span>⊙</span>
         </div>
-      </main>
-    </div>
-  );
+      </motion.div>
+    </main>
+  )
 }
