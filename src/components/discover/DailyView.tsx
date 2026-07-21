@@ -58,12 +58,10 @@ export default function DailyView({ factor, factorRow, profile }: Props) {
         </p>
       </div>
 
-      {factor === 'western_astrology' && <DailyInsight loading={loading} content={content} />}
+      <DailyInsight loading={loading} content={content} />
 
       {/* Factor summary */}
       <FactorSnapshot factor={factor} results={results} />
-
-      {factor !== 'western_astrology' && <DailyInsight loading={loading} content={content} />}
     </motion.div>
   )
 }

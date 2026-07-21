@@ -4,6 +4,41 @@ import { createClient } from '@/lib/supabase/server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, dangerouslyAllowBrowser: true })
 
+type FactorSnapshots = Record<string, { content?: string; mantra?: string }>
+
+// Reuses (or creates) today's cached value for a factor, so a reading is only generated
+// once per day and stays the same for the rest of the day, instead of regenerating on every visit.
+async function getOrCreateSnapshot(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  today: string,
+  factor: string,
+  kind: 'content' | 'mantra',
+  generate: () => Promise<string>
+): Promise<string> {
+  const { data: existing } = await supabase
+    .from('daily_messages')
+    .select('factor_snapshots')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .single()
+
+  const snapshots = (existing?.factor_snapshots ?? {}) as FactorSnapshots
+  const cached = snapshots[factor]?.[kind]
+  if (cached) return cached
+
+  const value = await generate()
+
+  const nextSnapshots: FactorSnapshots = { ...snapshots, [factor]: { ...snapshots[factor], [kind]: value } }
+  await supabase.from('daily_messages').upsert({
+    user_id: userId,
+    date: today,
+    factor_snapshots: nextSnapshots,
+  })
+
+  return value
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -16,13 +51,15 @@ export async function POST(req: NextRequest) {
 
   // If requesting just today's spiritual mantra (for the dashboard card)
   if (factor === 'spirituality' && factorResults && mantraOnly) {
-    const mantra = await generateSpiritualityMantra(factorResults)
+    const mantra = await getOrCreateSnapshot(supabase, user.id, today, factor, 'mantra',
+      () => generateSpiritualityMantra(factorResults))
     return NextResponse.json({ mantra })
   }
 
   // If requesting a specific factor's daily content
   if (factor && factorResults) {
-    const content = await generateFactorContent(factor, factorResults, bodyProfile)
+    const content = await getOrCreateSnapshot(supabase, user.id, today, factor, 'content',
+      () => generateFactorContent(factor, factorResults, bodyProfile))
     return NextResponse.json({ factor_content: content })
   }
 

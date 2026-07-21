@@ -10,6 +10,7 @@ import { FactorType, FACTOR_META, IdentityFactor, UserProfile } from '@/lib/type
 import { getTarotCardImage } from '@/lib/tarotImages'
 import { getZodiacAnimalIcon, getZodiacElementIcon } from '@/lib/zodiacIcons'
 import FactorIcon from '@/components/FactorIcon'
+import RotatingBackground from '@/components/RotatingBackground'
 
 interface Props {
   profile: UserProfile
@@ -101,7 +102,10 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
         </motion.section>
 
         {/* Identity factor cards */}
-        <section>
+        <section className="relative overflow-hidden rounded-3xl p-4 sm:p-6">
+          <RotatingBackground />
+
+          <div className="relative">
           <h2 className="text-xl font-normal mb-4" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
             Your Identity Map
           </h2>
@@ -165,6 +169,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
                 </motion.div>
               )
             })}
+          </div>
           </div>
         </section>
 
