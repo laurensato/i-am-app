@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Crosshair, ArrowLeft, ArrowRight } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 import { IdentityFactor } from '@/lib/types'
 import SubmitButton from './SubmitButton'
@@ -31,7 +32,7 @@ const SECTIONS = [
     id: 'good_at',
     key: 'What you\'re GOOD AT',
     color: 'var(--sage)',
-    bg: 'rgba(122,158,126,0.08)',
+    bg: 'rgba(92,138,69,0.08)',
     prompt: 'What do you do naturally well? What do others often ask for your help with? What skills have you developed over your lifetime?',
     placeholder: 'e.g. Listening deeply, problem-solving, creating structure, storytelling...',
     questions: [
@@ -57,7 +58,7 @@ const SECTIONS = [
     id: 'paid_for',
     key: 'What you can be PAID FOR',
     color: 'var(--gold)',
-    bg: 'rgba(201,169,110,0.08)',
+    bg: 'rgba(201,150,58,0.08)',
     prompt: 'What skills or value have people paid for (or would pay for)? What work has the world recognized and rewarded in you?',
     placeholder: 'e.g. Strategic thinking, design, coaching, technical expertise, coordination...',
     questions: [
@@ -70,7 +71,7 @@ const SECTIONS = [
 
 type Phase = 'intro' | 'section' | 'loading' | 'results'
 
-export default function IkigaiFlow({ userId, onComplete }: Props) {
+export default function IkigaiFlow({ profile, userId, onComplete }: Props) {
   const [phase, setPhase] = useState<Phase>('intro')
   const [currentSection, setCurrentSection] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({ love: '', good_at: '', world_needs: '', paid_for: '' })
@@ -92,7 +93,7 @@ export default function IkigaiFlow({ userId, onComplete }: Props) {
     const res = await fetch('/api/discover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ factor: 'ikigai', data: answers }),
+      body: JSON.stringify({ factor: 'ikigai', data: answers, profile }),
     })
     const data = await res.json()
     setResults(data.results)
@@ -110,7 +111,7 @@ export default function IkigaiFlow({ userId, onComplete }: Props) {
   if (phase === 'loading') {
     return (
       <div className="text-center py-20">
-        <div className="text-5xl mb-6 float inline-block">⊙</div>
+        <div className="mb-6 inline-block" style={{ color: 'var(--text-muted)' }}><Crosshair size={48} weight="thin" /></div>
         <p className="font-light" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}>
           Finding your center...
         </p>
@@ -122,7 +123,7 @@ export default function IkigaiFlow({ userId, onComplete }: Props) {
     return (
       <ResultCard title="Your Ikigai" onContinue={onComplete}>
         <div className="text-center mb-8 p-6 rounded-2xl"
-          style={{ background: 'linear-gradient(135deg, rgba(196,113,74,0.1), rgba(201,169,110,0.1))' }}>
+          style={{ background: 'linear-gradient(135deg, rgba(196,113,74,0.1), rgba(201,150,58,0.1))' }}>
           <p className="text-xs font-medium mb-3 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
             Your Reason for Being
           </p>
@@ -149,7 +150,7 @@ export default function IkigaiFlow({ userId, onComplete }: Props) {
     return (
       <motion.div className="flex flex-col gap-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <div>
-          <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+          <h2 className="text-2xl font-normal mb-4" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
             Finding Your Ikigai
           </h2>
           <p className="text-sm leading-relaxed font-light mb-4" style={{ color: 'var(--text-muted)' }}>
@@ -195,7 +196,7 @@ export default function IkigaiFlow({ userId, onComplete }: Props) {
         </div>
 
         <div className="p-4 rounded-2xl" style={{ backgroundColor: section.bg }}>
-          <p className="font-semibold text-lg mb-2" style={{ color: section.color, fontFamily: 'var(--font-serif)' }}>
+          <p className="font-normal text-lg mb-2" style={{ color: section.color, fontFamily: 'var(--font-serif)' }}>
             {section.key}
           </p>
           <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{section.prompt}</p>
@@ -221,13 +222,15 @@ export default function IkigaiFlow({ userId, onComplete }: Props) {
           onClick={nextSection}
           loading={loading}
           disabled={!answers[section.id].trim()}>
-          {currentSection < SECTIONS.length - 1 ? `Next: ${SECTIONS[currentSection + 1].key} →` : 'Find My Ikigai'}
+          {currentSection < SECTIONS.length - 1
+            ? <span className="flex items-center justify-center gap-2">Next: {SECTIONS[currentSection + 1].key} <ArrowRight size={16} weight="regular" /></span>
+            : 'Find My Ikigai'}
         </SubmitButton>
 
         {currentSection > 0 && (
           <button onClick={() => setCurrentSection(currentSection - 1)}
             className="text-sm font-light text-center" style={{ color: 'var(--text-muted)' }}>
-            ← Back
+            <span className="flex items-center justify-center gap-1"><ArrowLeft size={14} weight="regular" /> Back</span>
           </button>
         )}
       </motion.div>

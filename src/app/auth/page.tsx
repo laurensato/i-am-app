@@ -2,6 +2,7 @@
 import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { Sparkle } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 
 function AuthForm() {
@@ -38,7 +39,7 @@ function AuthForm() {
   if (sent) return (
     <div className="text-center">
       <div className="text-5xl mb-6">✉️</div>
-      <h2 className="text-2xl font-semibold mb-3" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+      <h2 className="text-2xl font-normal mb-3" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
         Check your email
       </h2>
       <p style={{ color: 'var(--text-muted)' }}>We sent a confirmation link to <strong>{email}</strong></p>
@@ -48,8 +49,8 @@ function AuthForm() {
   return (
     <div>
       <div className="text-center mb-8">
-        <div className="text-4xl mb-4">✦</div>
-        <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <div className="mb-4 flex justify-center" style={{ color: 'var(--text-secondary)' }}><Sparkle size={36} weight="thin" /></div>
+        <h1 className="text-4xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           I AM
         </h1>
         <p style={{ color: 'var(--text-muted)' }}>{isSignup ? 'Create your account' : 'Welcome back'}</p>

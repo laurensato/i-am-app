@@ -31,6 +31,8 @@ export interface WesternAstrologyResults {
   moon_sign: string
   rising_sign: string
   summary: string
+  essence?: string
+  chart?: import('./natalChart').NatalChart
 }
 
 export interface EasternAstrologyResults {

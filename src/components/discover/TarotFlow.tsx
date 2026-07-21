@@ -1,8 +1,11 @@
 'use client'
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Cards, Sparkle } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 import { IdentityFactor } from '@/lib/types'
+import { getTarotCardImage } from '@/lib/tarotImages'
 import ResultCard from './ResultCard'
 
 interface Props {
@@ -37,13 +40,13 @@ type Phase = 'intention' | 'shuffle' | 'draw' | 'loading' | 'results'
 
 interface DrawnCard { name: string; position: string; reversed: boolean }
 
-export default function TarotFlow({ userId, onComplete }: Props) {
+export default function TarotFlow({ profile, userId, onComplete }: Props) {
   const [phase, setPhase] = useState<Phase>('intention')
   const [intention, setIntention] = useState('')
   const [deck, setDeck] = useState([...TAROT_DECK])
   const [drawn, setDrawn] = useState<DrawnCard[]>([])
   const [revealed, setRevealed] = useState<boolean[]>([])
-  const [results, setResults] = useState<{ cards: DrawnCard[]; summary: string } | null>(null)
+  const [results, setResults] = useState<{ cards: DrawnCard[]; summary: string; essence?: string } | null>(null)
   const supabase = createClient()
 
   function startShuffle() {
@@ -80,10 +83,10 @@ export default function TarotFlow({ userId, onComplete }: Props) {
     const res = await fetch('/api/discover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ factor: 'tarot', data: { intention, cards } }),
+      body: JSON.stringify({ factor: 'tarot', data: { intention, cards }, profile }),
     })
     const data = await res.json()
-    const fullResults = { cards: data.results.cards ?? cards, summary: data.results.summary }
+    const fullResults = { cards: data.results.cards ?? cards, summary: data.results.summary, essence: data.results.essence }
     setResults(fullResults)
 
     await supabase.from('identity_factors').update({
@@ -99,19 +102,30 @@ export default function TarotFlow({ userId, onComplete }: Props) {
     return (
       <ResultCard title="Your Reading" onContinue={onComplete}>
         <div className="flex flex-col gap-4 mb-6">
-          {results.cards.map(card => (
-            <div key={card.position} className="p-4 rounded-xl" style={{ backgroundColor: 'var(--parchment)' }}>
-              <p className="text-xs font-medium mb-1 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
-                {card.position}
-              </p>
-              <p className="font-semibold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
-                {card.name} {card.reversed && <span className="text-xs">(Reversed)</span>}
-              </p>
-              <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>
-                {(results as { cards: (DrawnCard & { meaning?: string })[] }).cards.find(c => c.position === card.position)?.meaning}
-              </p>
-            </div>
-          ))}
+          {results.cards.map(card => {
+            const img = getTarotCardImage(card.name)
+            return (
+              <div key={card.position} className="flex gap-4 p-4 rounded-xl" style={{ backgroundColor: 'var(--parchment)' }}>
+                {img && (
+                  <div className="relative shrink-0 rounded-lg overflow-hidden" style={{ width: 64, height: 113 }}>
+                    <Image src={img} alt={card.name} fill sizes="64px" className="object-cover"
+                      style={{ transform: card.reversed ? 'rotate(180deg)' : 'none' }} />
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs font-medium mb-1 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+                    {card.position}
+                  </p>
+                  <p className="font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+                    {card.name} {card.reversed && <span className="text-xs">(Reversed)</span>}
+                  </p>
+                  <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>
+                    {(results as { cards: (DrawnCard & { meaning?: string })[] }).cards.find(c => c.position === card.position)?.meaning}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
         </div>
         <p className="text-sm leading-relaxed font-light" style={{ color: 'var(--text-secondary)' }}>{results.summary}</p>
       </ResultCard>
@@ -121,7 +135,7 @@ export default function TarotFlow({ userId, onComplete }: Props) {
   if (phase === 'loading') {
     return (
       <div className="text-center py-20">
-        <div className="text-5xl mb-6 float inline-block">🃏</div>
+        <div className="mb-6 inline-block" style={{ color: 'var(--text-muted)' }}><Cards size={48} weight="thin" /></div>
         <p className="font-light" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}>
           Reading the cards...
         </p>
@@ -133,7 +147,7 @@ export default function TarotFlow({ userId, onComplete }: Props) {
     return (
       <motion.div className="flex flex-col gap-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <div>
-          <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+          <h2 className="text-2xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
             Set Your Intention
           </h2>
           <p className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>
@@ -164,10 +178,11 @@ export default function TarotFlow({ userId, onComplete }: Props) {
     return (
       <div className="text-center py-16">
         <motion.div
-          className="text-6xl mb-8 inline-block"
+          className="mb-8 inline-block"
+          style={{ color: 'var(--text-muted)' }}
           animate={{ rotateY: [0, 180, 360], scale: [1, 0.9, 1] }}
           transition={{ duration: 0.8, repeat: 3 }}>
-          🃏
+          <Cards size={56} weight="thin" />
         </motion.div>
         <p className="text-lg font-light" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-serif)' }}>
           Shuffling the deck...
@@ -185,7 +200,7 @@ export default function TarotFlow({ userId, onComplete }: Props) {
   return (
     <motion.div className="flex flex-col gap-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div>
-        <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <h2 className="text-2xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           Draw Your Cards
         </h2>
         <p className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>
@@ -214,28 +229,40 @@ export default function TarotFlow({ userId, onComplete }: Props) {
                 <AnimatePresence>
                   {card && isRevealed ? (
                     <motion.div
-                      className="text-center p-3"
+                      className="w-full h-full relative"
                       initial={{ opacity: 0, rotateY: 90 }}
                       animate={{ opacity: 1, rotateY: 0 }}
                       transition={{ duration: 0.4 }}>
-                      <div className="text-2xl mb-2">🃏</div>
-                      <p className="text-xs font-semibold leading-tight" style={{
-                        color: 'var(--text-primary)',
-                        fontFamily: 'var(--font-serif)',
-                        transform: card.reversed ? 'rotate(180deg)' : 'none'
-                      }}>
-                        {card.name}
-                      </p>
+                      {(() => {
+                        const img = getTarotCardImage(card.name)
+                        return img ? (
+                          <Image src={img} alt={card.name} fill sizes="33vw" className="object-cover"
+                            style={{ transform: card.reversed ? 'rotate(180deg)' : 'none' }} />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-center p-3">
+                            <div className="mb-2 flex justify-center" style={{ color: 'var(--gold)' }}>
+                              <Cards size={28} weight="thin" />
+                            </div>
+                            <p className="text-xs font-semibold leading-tight" style={{
+                              color: 'var(--text-primary)',
+                              fontFamily: 'var(--font-serif)',
+                              transform: card.reversed ? 'rotate(180deg)' : 'none'
+                            }}>
+                              {card.name}
+                            </p>
+                          </div>
+                        )
+                      })()}
                     </motion.div>
                   ) : card ? (
-                    <div className="text-3xl">🃏</div>
+                    <div style={{ color: 'var(--text-muted)' }}><Cards size={32} weight="thin" /></div>
                   ) : (
-                    <div className="text-center">
+                    <div className="text-center flex flex-col items-center gap-1">
                       {canDraw ? (
-                        <><div className="text-2xl mb-1">✦</div>
+                        <><div style={{ color: 'var(--terracotta)' }}><Sparkle size={24} weight="thin" /></div>
                         <p className="text-xs" style={{ color: 'var(--terracotta)' }}>Tap</p></>
                       ) : (
-                        <div className="text-2xl opacity-20">·</div>
+                        <div className="opacity-20" style={{ color: 'var(--text-muted)' }}><Cards size={24} weight="thin" /></div>
                       )}
                     </div>
                   )}

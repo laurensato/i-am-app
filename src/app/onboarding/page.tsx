@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
+import { Check } from '@phosphor-icons/react'
 import { FactorType, FACTOR_META } from '@/lib/types'
+import FactorIcon from '@/components/FactorIcon'
 
 const GENDER_OPTIONS = [
   'Woman', 'Man', 'Non-binary', 'Genderqueer', 'Genderfluid',
@@ -71,7 +73,7 @@ export default function OnboardingPage() {
     <motion.div key="name" className="flex flex-col gap-6"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}>
       <div>
-        <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <h2 className="text-3xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           What shall we call you?
         </h2>
         <p className="text-base font-light" style={{ color: 'var(--text-muted)' }}>
@@ -98,7 +100,7 @@ export default function OnboardingPage() {
     <motion.div key="age-gender" className="flex flex-col gap-6"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}>
       <div>
-        <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <h2 className="text-3xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           A little about you, {firstName}
         </h2>
         <p className="text-base font-light" style={{ color: 'var(--text-muted)' }}>
@@ -158,7 +160,7 @@ export default function OnboardingPage() {
     <motion.div key="factors" className="flex flex-col gap-6"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}>
       <div>
-        <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <h2 className="text-3xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           What do you want to discover?
         </h2>
         <p className="text-base font-light" style={{ color: 'var(--text-muted)' }}>
@@ -182,12 +184,12 @@ export default function OnboardingPage() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
             >
-              <span className="text-3xl">{meta.emoji}</span>
+              <span style={{ color: 'var(--text-secondary)' }}><FactorIcon factor={f} size={28} weight="thin" /></span>
               <div>
                 <div className="font-medium text-base" style={{ color: 'var(--text-primary)' }}>{meta.label}</div>
                 <div className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>{meta.description}</div>
               </div>
-              {selected && <span className="ml-auto text-xl" style={{ color: 'var(--terracotta)' }}>✓</span>}
+              {selected && <span className="ml-auto" style={{ color: 'var(--terracotta)' }}><Check size={18} weight="regular" /></span>}
             </motion.button>
           )
         })}

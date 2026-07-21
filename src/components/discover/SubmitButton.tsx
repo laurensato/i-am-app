@@ -1,5 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
+import { Sparkle } from '@phosphor-icons/react'
 
 interface Props {
   onClick: () => void
@@ -18,7 +19,11 @@ export default function SubmitButton({ onClick, loading, disabled, children }: P
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
-      {loading ? '✦ Working...' : children}
+      {loading ? (
+        <span className="flex items-center justify-center gap-2">
+          <Sparkle size={16} weight="thin" className="animate-spin" /> Working...
+        </span>
+      ) : children}
     </motion.button>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { YinYang } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 import { IdentityFactor } from '@/lib/types'
 import SubmitButton from './SubmitButton'
@@ -13,7 +14,7 @@ interface Props {
   onComplete: () => void
 }
 
-export default function EasternAstrologyFlow({ userId, onComplete }: Props) {
+export default function EasternAstrologyFlow({ profile, userId, onComplete }: Props) {
   const [birthYear, setBirthYear] = useState('')
   const [birthMonth, setBirthMonth] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,7 +26,7 @@ export default function EasternAstrologyFlow({ userId, onComplete }: Props) {
     const res = await fetch('/api/discover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ factor: 'eastern_astrology', data: { birthYear, birthMonth } }),
+      body: JSON.stringify({ factor: 'eastern_astrology', data: { birthYear, birthMonth }, profile }),
     })
     const data = await res.json()
     setResults(data.results)
@@ -43,8 +44,8 @@ export default function EasternAstrologyFlow({ userId, onComplete }: Props) {
     return (
       <ResultCard title="Your Chinese Zodiac" onContinue={onComplete}>
         <div className="text-center mb-6">
-          <div className="text-6xl mb-3">🐉</div>
-          <h3 className="text-2xl font-bold mb-1" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+          <div className="mb-3 flex justify-center" style={{ color: 'var(--text-secondary)' }}><YinYang size={56} weight="thin" /></div>
+          <h3 className="text-2xl font-normal mb-1" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
             {results.element} {results.animal}
           </h3>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{results.yin_yang}</p>
@@ -60,7 +61,7 @@ export default function EasternAstrologyFlow({ userId, onComplete }: Props) {
     <motion.div className="flex flex-col gap-6"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div>
-        <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <h2 className="text-2xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           Your Chinese Zodiac
         </h2>
         <p className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>

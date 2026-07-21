@@ -1,5 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
+import { Sparkle, ArrowLeft } from '@phosphor-icons/react'
 
 interface Props {
   title: string
@@ -15,8 +16,10 @@ export default function ResultCard({ title, children, onContinue }: Props) {
       transition={{ duration: 0.4 }}
       className="flex flex-col gap-6">
       <div className="text-center">
-        <div className="text-4xl mb-3 float inline-block">✦</div>
-        <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <div className="mb-3 inline-block" style={{ color: 'var(--text-muted)' }}>
+          <Sparkle size={32} weight="thin" />
+        </div>
+        <h2 className="text-2xl font-normal" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           {title}
         </h2>
       </div>
@@ -32,7 +35,7 @@ export default function ResultCard({ title, children, onContinue }: Props) {
         style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}>
-        Return to Dashboard →
+        <span className="flex items-center justify-center gap-2"><ArrowLeft size={16} weight="regular" /> Return to Dashboard</span>
       </motion.button>
     </motion.div>
   )

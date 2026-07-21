@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { MoonStars, YinYang, Flame, Cards, Diamond, Crosshair, Sparkle } from '@phosphor-icons/react'
 
 export default function LandingPage() {
   return (
@@ -21,15 +22,16 @@ export default function LandingPage() {
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
         <motion.div
-          className="text-7xl mb-6 float inline-block"
+          className="mb-6 float inline-block"
+          style={{ color: 'var(--text-primary)' }}
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          ✦
+          <Sparkle size={64} weight="thin" />
         </motion.div>
 
-        <h1 className="text-7xl font-bold mb-4 tracking-widest"
+        <h1 className="text-7xl font-bold mb-4 tracking-wider"
           style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           I AM
         </h1>
@@ -63,8 +65,13 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        <div className="mt-16 flex justify-center gap-8 text-2xl opacity-30">
-          <span>♑</span><span>🐉</span><span>🕯️</span><span>🃏</span><span>💎</span><span>⊙</span>
+        <div className="mt-16 flex justify-center gap-8 opacity-25" style={{ color: 'var(--text-secondary)' }}>
+          <MoonStars size={24} weight="thin" />
+          <YinYang size={24} weight="thin" />
+          <Flame size={24} weight="thin" />
+          <Cards size={24} weight="thin" />
+          <Diamond size={24} weight="thin" />
+          <Crosshair size={24} weight="thin" />
         </div>
       </motion.div>
     </main>

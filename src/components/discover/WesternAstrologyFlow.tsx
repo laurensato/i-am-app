@@ -1,10 +1,13 @@
 'use client'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { Sun, Moon, ArrowUp } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 import { IdentityFactor } from '@/lib/types'
+import { NatalChart } from '@/lib/natalChart'
 import SubmitButton from './SubmitButton'
 import ResultCard from './ResultCard'
+import NatalChartWheel, { AspectsTable } from './NatalChart'
 
 interface Props {
   factorRow: IdentityFactor
@@ -13,12 +16,12 @@ interface Props {
   onComplete: () => void
 }
 
-export default function WesternAstrologyFlow({ factorRow, userId, onComplete }: Props) {
+export default function WesternAstrologyFlow({ profile, userId, onComplete }: Props) {
   const [birthDate, setBirthDate] = useState('')
   const [birthTime, setBirthTime] = useState('')
   const [birthPlace, setBirthPlace] = useState('')
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<{ sun_sign: string; moon_sign: string; rising_sign: string; summary: string } | null>(null)
+  const [results, setResults] = useState<{ sun_sign: string; moon_sign: string; rising_sign: string; summary: string; chart?: NatalChart } | null>(null)
   const supabase = createClient()
 
   async function handleSubmit() {
@@ -26,7 +29,7 @@ export default function WesternAstrologyFlow({ factorRow, userId, onComplete }: 
     const res = await fetch('/api/discover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ factor: 'western_astrology', data: { birthDate, birthTime, birthPlace } }),
+      body: JSON.stringify({ factor: 'western_astrology', data: { birthDate, birthTime, birthPlace }, profile }),
     })
     const data = await res.json()
     setResults(data.results)
@@ -45,19 +48,33 @@ export default function WesternAstrologyFlow({ factorRow, userId, onComplete }: 
       <ResultCard title="Your Natal Chart" onContinue={onComplete}>
         <div className="flex gap-3 mb-6">
           {[
-            { emoji: '☀️', label: 'Sun', value: results.sun_sign },
-            { emoji: '🌙', label: 'Moon', value: results.moon_sign },
-            { emoji: '↑', label: 'Rising', value: results.rising_sign },
+            { icon: <Sun size={24} weight="thin" />, label: 'Sun', value: results.sun_sign },
+            { icon: <Moon size={24} weight="thin" />, label: 'Moon', value: results.moon_sign },
+            { icon: <ArrowUp size={24} weight="thin" />, label: 'Rising', value: results.rising_sign },
           ].map(a => (
             <div key={a.label} className="flex-1 text-center p-4 rounded-xl"
               style={{ backgroundColor: 'var(--parchment)' }}>
-              <div className="text-2xl mb-1">{a.emoji}</div>
+              <div className="mb-1 flex justify-center" style={{ color: 'var(--text-secondary)' }}>{a.icon}</div>
               <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>{a.label}</div>
-              <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>{a.value}</div>
+              <div className="font-normal text-sm" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>{a.value}</div>
             </div>
           ))}
         </div>
-        <p className="text-sm leading-relaxed font-light" style={{ color: 'var(--text-secondary)' }}>{results.summary}</p>
+        <p className="text-sm leading-relaxed font-light mb-6" style={{ color: 'var(--text-secondary)' }}>{results.summary}</p>
+
+        {results.chart && (
+          <div className="flex flex-col gap-4">
+            <div className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--parchment)' }}>
+              <NatalChartWheel chart={results.chart} />
+            </div>
+            <div>
+              <p className="text-xs font-medium mb-2 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+                Aspects
+              </p>
+              <AspectsTable chart={results.chart} />
+            </div>
+          </div>
+        )}
       </ResultCard>
     )
   }
@@ -66,7 +83,7 @@ export default function WesternAstrologyFlow({ factorRow, userId, onComplete }: 
     <motion.div className="flex flex-col gap-6"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div>
-        <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <h2 className="text-2xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           Your Birth Chart
         </h2>
         <p className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>
