@@ -11,6 +11,7 @@ import { getTarotCardImage } from '@/lib/tarotImages'
 import { getZodiacAnimalIcon, getZodiacElementIcon } from '@/lib/zodiacIcons'
 import FactorIcon from '@/components/FactorIcon'
 import RotatingBackground from '@/components/RotatingBackground'
+import IkigaiChart from '@/components/discover/IkigaiChart'
 
 interface Props {
   profile: UserProfile
@@ -72,7 +73,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
         {/* Daily message */}
         <motion.section
           className="rounded-3xl p-8 relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, var(--moss) 0%, var(--forest) 100%)' }}
+          style={{ backgroundColor: 'var(--sol-navy)' }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -92,7 +93,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
                 {dailyMessage?.insight}
               </p>
               <div className="border-t border-white border-opacity-20 pt-4">
-                <p className="text-xs text-white opacity-60 mb-1 tracking-widest uppercase">Today&apos;s Mantra</p>
+                <p className="text-xs text-white opacity-60 mb-1 uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>Today&apos;s Mantra</p>
                 <p className="text-white font-medium text-xl italic" style={{ fontFamily: 'var(--font-serif)' }}>
                   &ldquo;{dailyMessage?.mantra}&rdquo;
                 </p>
@@ -123,10 +124,9 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
                 >
                   <Link href={`/discover/${factor.factor_type}`}>
                     <motion.div
-                      className="rounded-2xl p-6 border cursor-pointer transition-all card-shadow card-shadow-hover"
+                      className="rounded-2xl p-6 cursor-pointer transition-all card-shadow card-shadow-hover"
                       style={{
                         backgroundColor: 'var(--warm-white)',
-                        borderColor: completed ? 'var(--gold)' : 'var(--parchment)',
                       }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -137,7 +137,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
                         </span>
                         {completed && (
                           <span className="text-xs px-2 py-1 rounded-full font-medium"
-                            style={{ backgroundColor: 'rgba(201,150,58,0.15)', color: 'var(--gold)' }}>
+                            style={{ backgroundColor: 'rgba(238,108,90,0.15)', color: 'var(--gold)' }}>
                             Active
                           </span>
                         )}
@@ -299,39 +299,7 @@ function IkigaiCardSummary({ factor, userId }: { factor: IdentityFactor; userId:
 
   return (
     <div className="flex justify-center py-1">
-      <IkigaiVenn word={word} />
-    </div>
-  )
-}
-
-function IkigaiVenn({ word }: { word: string | null }) {
-  const circles = [
-    { cx: 54, cy: 54, color: 'var(--firstlight)' },
-    { cx: 106, cy: 54, color: 'var(--sage)' },
-    { cx: 54, cy: 106, color: 'var(--forest)' },
-    { cx: 106, cy: 106, color: 'var(--gold)' },
-  ]
-
-  return (
-    <div className="relative" style={{ width: 150, height: 150, isolation: 'isolate' }}>
-      <svg viewBox="0 0 160 160" width="150" height="150">
-        {circles.map((c, i) => (
-          <circle key={i} cx={c.cx} cy={c.cy} r="50" fill={c.color} fillOpacity="0.55" style={{ mixBlendMode: 'multiply' }} />
-        ))}
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        {word ? (
-          <span className="px-3 py-1 rounded-full text-xs font-semibold text-center"
-            style={{
-              backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)',
-              boxShadow: '0 1px 6px rgba(0,0,0,0.18)',
-            }}>
-            {word}
-          </span>
-        ) : (
-          <div className="h-3 w-12 rounded-full animate-pulse" style={{ backgroundColor: 'var(--warm-white)' }} />
-        )}
-      </div>
+      <IkigaiChart word={word} size={150} showWords={false} />
     </div>
   )
 }

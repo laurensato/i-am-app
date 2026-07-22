@@ -245,7 +245,7 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
               <motion.div key={v} layout
                 className="flex items-center gap-3 p-4 rounded-xl border"
                 style={{
-                  backgroundColor: i < 5 ? 'rgba(201,150,58,0.08)' : 'var(--warm-white)',
+                  backgroundColor: i < 5 ? 'rgba(238,108,90,0.08)' : 'var(--warm-white)',
                   borderColor: i < 5 ? 'var(--gold)' : 'var(--parchment)',
                 }}>
                 <span className="text-sm font-bold w-6 text-center"
@@ -296,7 +296,7 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
                 className="px-3 py-2 rounded-full text-sm border transition-all"
                 style={{
                   borderColor: sel ? 'var(--gold)' : 'var(--parchment)',
-                  backgroundColor: sel ? 'rgba(201,150,58,0.15)' : 'var(--warm-white)',
+                  backgroundColor: sel ? 'rgba(238,108,90,0.15)' : 'var(--warm-white)',
                   color: sel ? 'var(--warm-brown)' : 'var(--text-secondary)',
                 }}
                 whileTap={{ scale: 0.95 }}>
@@ -347,13 +347,13 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
               </motion.button>
               <motion.button onClick={() => categorize('important')}
                 className="w-full py-4 px-5 rounded-2xl border text-sm font-medium text-left transition-all"
-                style={{ borderColor: 'var(--sage-light)', backgroundColor: 'rgba(92,138,69,0.08)', color: 'var(--text-secondary)' }}
+                style={{ borderColor: 'var(--sage-light)', backgroundColor: 'rgba(95,123,78,0.08)', color: 'var(--text-secondary)' }}
                 whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
                 Important to me
               </motion.button>
               <motion.button onClick={() => categorize('very_important')}
                 className="w-full py-4 px-5 rounded-2xl border text-base font-semibold text-left transition-all"
-                style={{ borderColor: 'var(--gold)', backgroundColor: 'rgba(201,150,58,0.1)', color: 'var(--warm-brown)' }}
+                style={{ borderColor: 'var(--gold)', backgroundColor: 'rgba(238,108,90,0.1)', color: 'var(--warm-brown)' }}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 Very important to me
               </motion.button>

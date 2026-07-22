@@ -62,7 +62,7 @@ export default function DiscoverClient({ factor, factorRow, profile, userId }: P
   return (
     <PageShell factor={factor}>
       <div className="mb-8 p-6 rounded-2xl"
-        style={{ backgroundColor: 'rgba(201,150,58,0.1)', borderLeft: '3px solid var(--gold)' }}>
+        style={{ backgroundColor: 'rgba(238,108,90,0.1)', borderLeft: '3px solid var(--gold)' }}>
         <p className="text-sm font-medium mb-1" style={{ color: 'var(--gold)' }}>
           {updating ? `Updating your ${meta.label}` : `⏱ Set aside ${meta.time}`}
         </p>

@@ -128,7 +128,7 @@ export default function SpiritualityFlow({ profile, userId, onComplete }: Props)
           <div className="flex flex-wrap gap-2">
             {results.traditions.map(t => (
               <span key={t} className="px-3 py-1.5 rounded-full text-sm font-medium"
-                style={{ backgroundColor: 'rgba(92,138,69,0.15)', color: 'var(--sage)' }}>
+                style={{ backgroundColor: 'rgba(95,123,78,0.15)', color: 'var(--sage)' }}>
                 {t}
               </span>
             ))}
@@ -184,7 +184,7 @@ export default function SpiritualityFlow({ profile, userId, onComplete }: Props)
                   className="flex items-center gap-3 text-left px-5 py-4 rounded-2xl border text-sm font-light transition-all"
                   style={{
                     borderColor: sel ? 'var(--sage)' : 'var(--parchment)',
-                    backgroundColor: sel ? 'rgba(92,138,69,0.1)' : 'var(--warm-white)',
+                    backgroundColor: sel ? 'rgba(95,123,78,0.1)' : 'var(--warm-white)',
                     color: 'var(--text-primary)',
                   }}
                   whileHover={{ scale: 1.01, borderColor: 'var(--sage)' }}

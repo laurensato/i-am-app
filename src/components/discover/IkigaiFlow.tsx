@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { IdentityFactor } from '@/lib/types'
 import SubmitButton from './SubmitButton'
 import ResultCard from './ResultCard'
+import IkigaiChart from './IkigaiChart'
 
 interface Props {
   factorRow: IdentityFactor
@@ -32,7 +33,7 @@ const SECTIONS = [
     id: 'good_at',
     key: 'What you\'re GOOD AT',
     color: 'var(--sage)',
-    bg: 'rgba(92,138,69,0.08)',
+    bg: 'rgba(95,123,78,0.08)',
     prompt: 'What do you do naturally well? What do others often ask for your help with? What skills have you developed over your lifetime?',
     placeholder: 'e.g. Listening deeply, problem-solving, creating structure, storytelling...',
     questions: [
@@ -58,7 +59,7 @@ const SECTIONS = [
     id: 'paid_for',
     key: 'What you can be PAID FOR',
     color: 'var(--gold)',
-    bg: 'rgba(201,150,58,0.08)',
+    bg: 'rgba(238,108,90,0.08)',
     prompt: 'What skills or value have people paid for (or would pay for)? What work has the world recognized and rewarded in you?',
     placeholder: 'e.g. Strategic thinking, design, coaching, technical expertise, coordination...',
     questions: [
@@ -76,7 +77,7 @@ export default function IkigaiFlow({ profile, userId, onComplete }: Props) {
   const [currentSection, setCurrentSection] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({ love: '', good_at: '', world_needs: '', paid_for: '' })
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<{ love: string[]; good_at: string[]; world_needs: string[]; paid_for: string[]; ikigai_statement: string } | null>(null)
+  const [results, setResults] = useState<{ love: string[]; good_at: string[]; world_needs: string[]; paid_for: string[]; ikigai_statement: string; essence?: string } | null>(null)
   const supabase = createClient()
 
   function nextSection() {
@@ -123,7 +124,7 @@ export default function IkigaiFlow({ profile, userId, onComplete }: Props) {
     return (
       <ResultCard title="Your Ikigai" onContinue={onComplete}>
         <div className="text-center mb-8 p-6 rounded-2xl"
-          style={{ background: 'linear-gradient(135deg, rgba(196,113,74,0.1), rgba(201,150,58,0.1))' }}>
+          style={{ background: 'linear-gradient(135deg, rgba(196,113,74,0.1), rgba(238,108,90,0.1))' }}>
           <p className="text-xs font-medium mb-3 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
             Your Reason for Being
           </p>
@@ -132,15 +133,9 @@ export default function IkigaiFlow({ profile, userId, onComplete }: Props) {
             &ldquo;{results.ikigai_statement}&rdquo;
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {SECTIONS.map(s => (
-            <div key={s.id} className="p-3 rounded-xl" style={{ backgroundColor: s.bg }}>
-              <p className="text-xs font-medium mb-2" style={{ color: s.color }}>{s.key}</p>
-              <p className="text-xs font-light" style={{ color: 'var(--text-secondary)' }}>
-                {answers[s.id].split('\n')[0]}...
-              </p>
-            </div>
-          ))}
+        <div className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--parchment)' }}>
+          <IkigaiChart word={results.essence ?? null} love={results.love} good_at={results.good_at}
+            world_needs={results.world_needs} paid_for={results.paid_for} size={320} />
         </div>
       </ResultCard>
     )

@@ -200,20 +200,43 @@ Return only the JSON, no markdown. Write all text values as plain prose — no a
 
     eastern_astrology: `${personalization}
 
-You are an expert in Chinese astrology. Given a birth year and month, determine the Chinese zodiac sign.
+You are an expert in Chinese astrology with deep knowledge of the Five Elements, the 12 animals, and annual energy cycles. Given a birth year and month, determine the Chinese zodiac sign and produce a rich, layered reading.
 
 Birth Year: ${(data as Record<string, string>).birthYear}
 Birth Month: ${(data as Record<string, string>).birthMonth}
 
 Note: The Chinese New Year falls between Jan 21 and Feb 20. If born in January or early February, they may belong to the previous year's animal. Calculate correctly.
 
-Return a JSON object:
+The current year is 2026 — the Year of the Yang Fire Horse.
+
+Return a JSON object with exactly this structure:
 {
   "animal": "Animal name",
   "element": "Element (Wood/Fire/Earth/Metal/Water)",
   "yin_yang": "Yin or Yang",
-  "summary": "2-3 sentences describing the nature, strengths, and wisdom of this sign and element combination. Warm and affirming.",
-  "essence": "A short phrase (4-8 words) that captures the essence of this sign and element combination — evocative, not generic, e.g. 'Steady fire, quiet resilience, loyal heart'"
+  "summary": "2-3 sentences describing the overall nature of this sign and element combination. Warm and affirming.",
+  "essence": "A short phrase (4-8 words) that captures the essence of this sign — evocative, not generic, e.g. 'Steady fire, quiet resilience, loyal heart'",
+  "personality": {
+    "core": "2-3 sentences on their core character — how this animal shows up in the world, what drives them at their best.",
+    "in_relationships": "1-2 sentences on how they love, bond, and show loyalty.",
+    "at_work": "1-2 sentences on how they approach work, ambition, and contribution.",
+    "under_pressure": "1-2 sentences on their shadow tendencies — what emerges when stressed or out of alignment. Compassionate, not critical."
+  },
+  "strengths": ["3-5 specific, evocative strengths — not generic adjectives but alive phrases, e.g. 'Turns chaos into calm through sheer presence'"],
+  "shadows": ["2-3 honest challenges or blind spots — stated with compassion, e.g. 'Can exhaust themselves carrying everyone else's weight'"],
+  "element_nature": {
+    "essence": "1-2 sentences on what this element means cosmically — its archetype, season, direction, energy.",
+    "expression": "1-2 sentences on how this element specifically expresses through this animal — the unique flavor of their combination.",
+    "nourished_by": "What nourishes this element — activities, environments, relationships that restore them.",
+    "depleted_by": "What depletes this element — patterns or environments to be aware of."
+  },
+  "year_2026": {
+    "year_animal": "Horse",
+    "year_element": "Fire",
+    "relationship": "One of: harmony, clash, neutral, penalty, or combination — the technical relationship between their animal and the Horse year",
+    "relationship_quality": "One of: supportive, challenging, or neutral",
+    "reading": "3-4 sentences on how the Fire Horse year of 2026 sits with their sign — what themes, opportunities, and cautions this year carries for them specifically. Grounded and specific, not generic horoscope language."
+  }
 }
 Return only the JSON, no markdown. Write all text values as plain prose — no asterisks, no bold, no italics, no markdown formatting of any kind inside the strings.`,
 
@@ -291,10 +314,10 @@ Synthesize their ikigai into a meaningful statement and identify key elements fr
 
 Return a JSON object:
 {
-  "love": ["3-5 key phrases extracted from what they love"],
-  "good_at": ["3-5 key phrases from what they're good at"],
-  "world_needs": ["3-5 key phrases from what the world needs"],
-  "paid_for": ["3-5 key phrases from what they can be paid for"],
+  "love": ["3-5 single words (one word each, not phrases) distilled from what they love"],
+  "good_at": ["3-5 single words (one word each, not phrases) distilled from what they're good at"],
+  "world_needs": ["3-5 single words (one word each, not phrases) distilled from what the world needs"],
+  "paid_for": ["3-5 single words (one word each, not phrases) distilled from what they can be paid for"],
   "ikigai_statement": "A single evocative sentence (15-25 words) that captures their unique reason for being. Should feel true and alive, not generic.",
   "essence": "A single word — one word only, no phrase — that captures or represents this person's ikigai. Evocative and specific to them, not generic (avoid just returning 'Ikigai' or 'Purpose'). Title case."
 }
@@ -307,7 +330,7 @@ Return only the JSON, no markdown. Write all text values as plain prose — no a
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: factor === 'eastern_astrology' ? 2048 : 1024,
       messages: [{ role: 'user', content: prompt }],
     })
 

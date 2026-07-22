@@ -17,8 +17,8 @@ const PLANET_SYMBOLS: Record<string, string> = {
 
 const ASPECT_STYLE: Record<string, { color: string; width: number }> = {
   conjunction: { color: 'var(--gold)', width: 1 },
-  opposition: { color: 'var(--bark)', width: 1.25 },
-  square: { color: 'var(--bark)', width: 1 },
+  opposition: { color: 'var(--forest)', width: 1.25 },
+  square: { color: 'var(--forest)', width: 1 },
   trine: { color: 'var(--sage)', width: 1.25 },
   sextile: { color: 'var(--sage-light)', width: 1 },
 }

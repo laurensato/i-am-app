@@ -1,31 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  /* Forest at Dawn — named tokens */
-  --forest:     #1E3D2C;   /* deep woods */
-  --moss:       #5C8A45;   /* Irish moss, verdant */
-  --mist:       #8BAAA0;   /* pre-dawn blue-grey */
-  --firstlight: #D4956A;   /* amber-rose at the canopy */
-  --sky:        #C8DCEB;   /* 5am, barely blue */
-  --bark:       #3D2E1E;   /* grounding dark */
+  /* Nagare Sol — primitive tokens */
+  --sol-paper:      #FBF6EE;
+  --sol-sand:       #F4EBDD;
+  --sol-sand-deep:  #ECE0CE;
+  --sol-greige:     #E4D9C6;
+  --sol-clay:       #C68A63;
+  --sol-ink:        #23252C;
+  --sol-navy:       #202A43;
+  --sol-ink-muted:  #79736A;
+  --sol-ink-faint:  #A2937D;
+  --sol-coral-100:  #FADED7;
+  --sol-coral-300:  #F7B3A6;
+  --sol-coral-500:  #EE6C5A;
+  --sol-coral-700:  #DA5442;
+  --sol-teal-100:   #D2E0E4;
+  --sol-teal-300:   #6E9AA8;
+  --sol-teal-500:   #2F5C6E;
+  --sol-teal-700:   #234653;
+  --sol-moss-100:   #DFE6D3;
+  --sol-moss-300:   #A6B694;
+  --sol-moss-500:   #5F7B4E;
+  --sol-moss-700:   #3E5537;
 
-  /* App semantic variables — mapped to Forest at Dawn */
-  --cream:             #F2EDE6;   /* Ground — main background */
-  --warm-white:        #FAF7F3;   /* Parchment — card surfaces */
-  --parchment:         #E6E1D8;   /* dividers, secondary fills */
-  --terracotta:        #C9963A;   /* Treetop Gold — primary action */
-  --terracotta-light:  #DFB05C;
-  --rust:              #A87A2A;   /* deeper gold — hover/gradient end */
-  --sage:              #5C8A45;   /* Moss — accent green */
-  --sage-light:        #8BAAA0;   /* Mist — muted accent */
-  --warm-brown:        #1E3D2C;   /* Forest — secondary dark */
-  --warm-brown-light:  #4A6B54;
-  --gold:              #C9963A;   /* Treetop Gold */
-  --gold-light:        #DFB05C;
+  /* App semantic variables — mapped to Nagare Sol */
+  --cream:             #F4EBDD;   /* sol-sand — main background */
+  --warm-white:        #FBF6EE;   /* sol-paper — card surfaces */
+  --parchment:         #E4D9C6;   /* sol-greige — borders, dividers */
+  --terracotta:        #EE6C5A;   /* sol-coral-500 — primary action */
+  --terracotta-light:  #F7B3A6;   /* sol-coral-300 */
+  --rust:              #DA5442;   /* sol-coral-700 — hover/pressed */
+  --sage:              #5F7B4E;   /* sol-moss-500 — accent green */
+  --sage-light:        #A6B694;   /* sol-moss-300 */
+  --warm-brown:        #202A43;   /* sol-navy — secondary dark */
+  --warm-brown-light:  #2F5C6E;   /* sol-teal-500 */
+  --gold:              #EE6C5A;   /* maps to coral (persimmon is the accent) */
+  --gold-light:        #F7B3A6;   /* sol-coral-300 */
+  --forest:            #202A43;   /* sol-navy */
+  --moss:              #5F7B4E;   /* sol-moss-500 */
 
-  --text-primary:   #1C2E22;
-  --text-secondary: #4A6B54;
-  --text-muted:     #8A9E90;
+  --text-primary:   #23252C;   /* sol-ink */
+  --text-secondary: #79736A;   /* sol-ink-muted */
+  --text-muted:     #A2937D;   /* sol-ink-faint */
 }
 
 * { box-sizing: border-box; }
@@ -53,7 +70,7 @@ body {
 .float { animation: float 4s ease-in-out infinite; }
 
 .shimmer-text {
-  background: linear-gradient(90deg, #C9963A 25%, #DFB05C 50%, #C9963A 75%);
+  background: linear-gradient(90deg, #EE6C5A 25%, #F7B3A6 50%, #EE6C5A 75%);
   background-size: 200% auto;
   animation: shimmer 2.5s linear infinite;
   -webkit-background-clip: text;
@@ -62,9 +79,9 @@ body {
 }
 
 .card-shadow {
-  box-shadow: 0 4px 24px rgba(30, 61, 44, 0.08), 0 1px 4px rgba(30, 61, 44, 0.04);
+  box-shadow: 0 1px 2px rgba(32, 42, 67, 0.12);
 }
 
 .card-shadow-hover:hover {
-  box-shadow: 0 8px 40px rgba(30, 61, 44, 0.14), 0 2px 8px rgba(30, 61, 44, 0.06);
+  box-shadow: 0 16px 30px -20px rgba(32, 42, 67, 0.5);
 }
