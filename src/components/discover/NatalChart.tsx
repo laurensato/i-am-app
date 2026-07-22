@@ -31,12 +31,20 @@ const R_HOUSE_INNER = 108
 const R_PLANET = 92
 const R_ASPECT = 62
 
+// Math.cos/Math.sin can differ in their last decimal digit between the server's and
+// browser's JS engine for the same input, and React hydration compares rendered attribute
+// strings exactly — round to 2 decimal places (far finer than visible at this SVG size) so
+// both sides always produce the same string.
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
 function pointOn(degree: number, ascendantDegree: number, radius: number) {
   const wheelAngle = ((degree - ascendantDegree) % 360 + 360) % 360
   const mathAngleRad = ((180 + wheelAngle) * Math.PI) / 180
   return {
-    x: CENTER + radius * Math.cos(mathAngleRad),
-    y: CENTER - radius * Math.sin(mathAngleRad),
+    x: round2(CENTER + radius * Math.cos(mathAngleRad)),
+    y: round2(CENTER - radius * Math.sin(mathAngleRad)),
   }
 }
 

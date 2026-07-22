@@ -1,13 +1,17 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Sun, Moon, ArrowUp, Cards, YinYang } from '@phosphor-icons/react'
+import Image from 'next/image'
+import { Sun, Moon, ArrowUp, YinYang, Sparkle } from '@phosphor-icons/react'
 import { FactorType, FACTOR_META, IdentityFactor } from '@/lib/types'
 import { NatalChart } from '@/lib/natalChart'
 import { createClient } from '@/lib/supabase/client'
+import { getTarotCardImage } from '@/lib/tarotImages'
 import FactorIcon from '@/components/FactorIcon'
 import NatalChartWheel, { AspectsTable } from './NatalChart'
 import IkigaiChart from './IkigaiChart'
+
+type TarotCard = { name: string; position: string; reversed?: boolean }
 
 interface Props {
   factor: FactorType
@@ -18,12 +22,19 @@ interface Props {
 
 export default function DailyView({ factor, factorRow, profile, userId }: Props) {
   const [content, setContent] = useState<string>('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const meta = FACTOR_META[factor]
+  const results = factorRow.results as Record<string, unknown>
+
+  const isTarot = factor === 'tarot'
+  const cards = ((results as { cards?: TarotCard[] }).cards ?? [])
+  const [revealed, setRevealed] = useState<Set<number>>(new Set())
+  const readyForReading = !isTarot || (cards.length > 0 && revealed.size === cards.length)
 
   useEffect(() => {
+    if (!readyForReading) return
     fetchDailyContent()
-  }, [])
+  }, [readyForReading])
 
   async function fetchDailyContent() {
     setLoading(true)
@@ -33,15 +44,14 @@ export default function DailyView({ factor, factorRow, profile, userId }: Props)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ factor, factorResults: factorRow.results, profile }),
       })
+      if (!res.ok) throw new Error('Failed to load daily content')
       const data = await res.json()
       setContent(data.factor_content ?? data.insight ?? '')
     } catch {
-      setContent(getFallback(factor, factorRow.results as Record<string, unknown>))
+      setContent(getFallback(factor, results))
     }
     setLoading(false)
   }
-
-  const results = factorRow.results as Record<string, unknown>
 
   return (
     <motion.div className="flex flex-col gap-6"
@@ -60,11 +70,94 @@ export default function DailyView({ factor, factorRow, profile, userId }: Props)
         </p>
       </div>
 
-      <DailyInsight loading={loading} content={content} />
+      {isTarot && (
+        <TarotCardReveal
+          cards={cards}
+          revealed={revealed}
+          onReveal={i => setRevealed(prev => new Set(prev).add(i))}
+        />
+      )}
+
+      {isTarot && !readyForReading ? (
+        <p className="text-sm font-light text-center" style={{ color: 'var(--text-muted)' }}>
+          Tap each card to reveal it and unlock today&apos;s reading.
+        </p>
+      ) : isTarot ? (
+        <TarotDailyInsight loading={loading} content={content} />
+      ) : (
+        <DailyInsight loading={loading} content={content} />
+      )}
 
       {/* Factor summary */}
       <FactorSnapshot factor={factor} results={results} userId={userId} />
     </motion.div>
+  )
+}
+
+function TarotCardReveal({ cards, revealed, onReveal }: {
+  cards: TarotCard[]
+  revealed: Set<number>
+  onReveal: (i: number) => void
+}) {
+  return (
+    <div className="flex justify-center gap-4">
+      {cards.map((c, i) => {
+        const isRevealed = revealed.has(i)
+        const img = getTarotCardImage(c.name)
+        return (
+          <div key={c.position} className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => !isRevealed && onReveal(i)}
+              disabled={isRevealed}
+              aria-label={isRevealed ? c.name : `Reveal ${c.position} card`}
+              style={{ width: 96, height: 168, perspective: 800, cursor: isRevealed ? 'default' : 'pointer' }}
+            >
+              <motion.div
+                className="relative w-full h-full"
+                style={{ transformStyle: 'preserve-3d' }}
+                animate={{ rotateY: isRevealed ? 180 : 0 }}
+                transition={{ duration: 0.6, ease: 'easeInOut' }}
+                whileHover={!isRevealed ? { scale: 1.04 } : {}}
+                whileTap={!isRevealed ? { scale: 0.97 } : {}}
+              >
+                {/* Card back */}
+                <div className="absolute inset-0 rounded-xl flex items-center justify-center card-shadow"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    background: 'linear-gradient(135deg, var(--sol-navy), var(--warm-brown))',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                  }}>
+                  <Sparkle size={28} weight="thin" color="rgba(255,255,255,0.4)" />
+                </div>
+
+                {/* Card face */}
+                <div className="absolute inset-0 rounded-xl overflow-hidden card-shadow"
+                  style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                  {img ? (
+                    <Image src={img} alt={c.name} fill sizes="96px" className="object-cover"
+                      style={{ transform: c.reversed ? 'rotate(180deg)' : 'none' }} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-center p-2"
+                      style={{ backgroundColor: 'var(--parchment)' }}>
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{c.name}</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </button>
+            <div className="text-center">
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{c.position}</p>
+              {isRevealed && (
+                <p className="text-xs font-normal mt-0.5" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>
+                  {c.name}{c.reversed ? ' (Reversed)' : ''}
+                </p>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -79,6 +172,51 @@ function DailyInsight({ loading, content }: { loading: boolean; content: string 
           <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-3/4" />
           <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-full" />
           <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-2/3" />
+        </div>
+      ) : (
+        <p className="text-white font-light leading-relaxed">{content}</p>
+      )}
+    </div>
+  )
+}
+
+function parseTarotReading(content: string): { cards: { position: string; reflection: string }[]; summary: string } | null {
+  try {
+    const parsed = JSON.parse(content)
+    if (parsed?.summary && Array.isArray(parsed?.cards)) return parsed
+  } catch {
+    // not JSON — fall through to raw-text rendering
+  }
+  return null
+}
+
+function TarotDailyInsight({ loading, content }: { loading: boolean; content: string }) {
+  const reading = !loading ? parseTarotReading(content) : null
+
+  return (
+    <div className="p-6 rounded-2xl" style={{ backgroundColor: 'var(--sol-navy)' }}>
+      <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">Today&apos;s Insight</p>
+      {loading ? (
+        <div className="flex flex-col gap-2">
+          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-3/4" />
+          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-full" />
+          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-2/3" />
+        </div>
+      ) : reading ? (
+        <div className="flex flex-col gap-4">
+          <ul className="flex flex-col gap-3">
+            {reading.cards.map(c => (
+              <li key={c.position} className="flex gap-2 items-start">
+                <span className="mt-2 w-1.5 h-1.5 rounded-full shrink-0 bg-white opacity-50" />
+                <p className="text-white font-light leading-relaxed">
+                  <span className="font-normal opacity-80">{c.position}:</span> {c.reflection}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="text-white font-light leading-relaxed pt-4 border-t border-white border-opacity-20">
+            {reading.summary}
+          </p>
         </div>
       ) : (
         <p className="text-white font-light leading-relaxed">{content}</p>
@@ -195,19 +333,12 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
   }
 
   if (factor === 'tarot') {
-    const r = results as { cards?: { name: string; position: string; reversed?: boolean }[]; summary?: string }
+    const r = results as { summary?: string }
+    if (!r.summary) return null
     return (
       <div className="p-6 rounded-2xl card-shadow" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
-        <div className="flex gap-3 mb-4">
-          {(r.cards ?? []).map(c => (
-            <div key={c.position} className="flex-1 text-center p-3 rounded-xl" style={{ backgroundColor: 'var(--parchment)' }}>
-              <div className="mb-1 flex justify-center" style={{ color: 'var(--text-secondary)' }}><Cards size={20} weight="thin" /></div>
-              <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{c.position}</div>
-              <div className="text-xs font-normal" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>{c.name}</div>
-            </div>
-          ))}
-        </div>
-        {r.summary && <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{r.summary}</p>}
+        <p className="text-xs font-medium mb-2 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>Your Reading</p>
+        <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{r.summary}</p>
       </div>
     )
   }

@@ -29,11 +29,13 @@ export default async function DashboardPage() {
     .eq('date', today)
     .single()
 
+  const hasDailyMessage = !!(dailyMessage?.insight && dailyMessage?.mantra)
+
   return (
     <DashboardClient
       profile={profile}
       factors={factors ?? []}
-      dailyMessage={dailyMessage}
+      dailyMessage={hasDailyMessage ? dailyMessage : null}
       userId={user.id}
     />
   )

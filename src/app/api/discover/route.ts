@@ -125,8 +125,8 @@ Return only the JSON, no markdown.`
   const firstName: string | undefined = (profile as { first_name?: string } | null)?.first_name?.trim() || undefined
 
   const personalization = firstName
-    ? `You are writing directly to ${firstName}. Address them by name at least once in the summary (e.g. "${firstName}, ..."), and write in second person ("you") throughout. This should feel like it was written specifically for ${firstName} — personal and specific, not a generic reading anyone could receive.`
-    : `Write in warm second person ("you") throughout. This should feel personal and specific to this individual, not a generic reading.`
+    ? `You are writing directly to ${firstName}. Address them by name at least once in the summary (e.g. "${firstName}, ..."), and write in second person ("you") throughout — never refer to them in the third person or as "this person"/"they." This should feel like it was written specifically for ${firstName} — personal and specific, not a generic reading anyone could receive.`
+    : `Write in warm second person ("you") throughout — never refer to them in the third person or as "this person"/"they." This should feel personal and specific to this individual, not a generic reading.`
 
   // For western astrology, try a real computed natal chart (real planetary positions, houses, aspects)
   // instead of asking the model to calculate positions. Falls through to the LLM-guess prompt below on failure

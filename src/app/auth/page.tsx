@@ -5,12 +5,14 @@ import { motion } from 'framer-motion'
 import { Sparkle } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 
+type View = 'signin' | 'signup' | 'forgot' | 'magic'
+
 function AuthForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const mode = searchParams.get('mode') ?? 'signin'
-  const isSignup = mode === 'signup'
 
+  const [view, setView] = useState<View>(mode === 'signup' ? 'signup' : 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -18,16 +20,30 @@ function AuthForm() {
   const [sent, setSent] = useState(false)
 
   const supabase = createClient()
+  const isSignup = view === 'signup'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    if (isSignup) {
+    if (view === 'signup') {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      })
+      if (error) { setError(error.message); setLoading(false); return }
+      setSent(true)
+    } else if (view === 'forgot') {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+      })
+      if (error) { setError(error.message); setLoading(false); return }
+      setSent(true)
+    } else if (view === 'magic') {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       })
       if (error) { setError(error.message); setLoading(false); return }
@@ -36,6 +52,7 @@ function AuthForm() {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
       router.push('/dashboard')
+      router.refresh()
     }
     setLoading(false)
   }
@@ -46,9 +63,26 @@ function AuthForm() {
       <h2 className="text-2xl font-normal mb-3" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
         Check your email
       </h2>
-      <p style={{ color: 'var(--text-muted)' }}>We sent a confirmation link to <strong>{email}</strong></p>
+      <p style={{ color: 'var(--text-muted)' }}>
+        {view === 'forgot'
+          ? <>We sent a password reset link to <strong>{email}</strong></>
+          : view === 'magic'
+            ? <>We sent a sign-in link to <strong>{email}</strong></>
+            : <>We sent a confirmation link to <strong>{email}</strong></>}
+      </p>
     </div>
   )
+
+  const title = view === 'signup' ? 'Create your account'
+    : view === 'forgot' ? 'Reset your password'
+      : view === 'magic' ? 'Sign in with a magic link'
+        : 'Welcome back'
+
+  const buttonLabel = loading ? '...'
+    : view === 'signup' ? 'Create Account'
+      : view === 'forgot' ? 'Send reset link'
+        : view === 'magic' ? 'Send magic link'
+          : 'Sign In'
 
   return (
     <div>
@@ -57,7 +91,7 @@ function AuthForm() {
         <h1 className="text-4xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           I AM
         </h1>
-        <p style={{ color: 'var(--text-muted)' }}>{isSignup ? 'Create your account' : 'Welcome back'}</p>
+        <p style={{ color: 'var(--text-muted)' }}>{title}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -74,20 +108,29 @@ function AuthForm() {
             color: 'var(--text-primary)',
           }}
         />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          minLength={6}
-          className="w-full px-4 py-3 rounded-xl border text-base outline-none transition-all"
-          style={{
-            borderColor: 'var(--parchment)',
-            backgroundColor: 'var(--warm-white)',
-            color: 'var(--text-primary)',
-          }}
-        />
+        {(view === 'signin' || view === 'signup') && (
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            minLength={6}
+            className="w-full px-4 py-3 rounded-xl border text-base outline-none transition-all"
+            style={{
+              borderColor: 'var(--parchment)',
+              backgroundColor: 'var(--warm-white)',
+              color: 'var(--text-primary)',
+            }}
+          />
+        )}
+
+        {view === 'signin' && (
+          <button type="button" onClick={() => { setView('forgot'); setError('') }}
+            className="text-sm text-right" style={{ color: 'var(--text-muted)' }}>
+            Forgot password?
+          </button>
+        )}
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -99,17 +142,33 @@ function AuthForm() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          {loading ? '...' : isSignup ? 'Create Account' : 'Sign In'}
+          {buttonLabel}
         </motion.button>
       </form>
 
-      <p className="text-center mt-6 text-sm" style={{ color: 'var(--text-muted)' }}>
-        {isSignup ? 'Already have an account? ' : "Don't have an account? "}
-        <a href={isSignup ? '/auth?mode=signin' : '/auth?mode=signup'}
-          className="underline" style={{ color: 'var(--terracotta)' }}>
-          {isSignup ? 'Sign in' : 'Sign up'}
-        </a>
-      </p>
+      {view === 'signin' && (
+        <button onClick={() => { setView('magic'); setError('') }}
+          className="w-full text-center mt-4 text-sm underline" style={{ color: 'var(--terracotta)' }}>
+          Sign in with a magic link instead
+        </button>
+      )}
+
+      {(view === 'forgot' || view === 'magic') && (
+        <button onClick={() => { setView('signin'); setError('') }}
+          className="w-full text-center mt-4 text-sm underline" style={{ color: 'var(--terracotta)' }}>
+          Back to sign in
+        </button>
+      )}
+
+      {(view === 'signin' || view === 'signup') && (
+        <p className="text-center mt-6 text-sm" style={{ color: 'var(--text-muted)' }}>
+          {isSignup ? 'Already have an account? ' : "Don't have an account? "}
+          <a href={isSignup ? '/auth?mode=signin' : '/auth?mode=signup'}
+            className="underline" style={{ color: 'var(--terracotta)' }}>
+            {isSignup ? 'Sign in' : 'Sign up'}
+          </a>
+        </p>
+      )}
     </div>
   )
 }

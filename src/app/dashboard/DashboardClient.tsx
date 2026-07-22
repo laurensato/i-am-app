@@ -36,6 +36,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
     setLoadingMessage(true)
     try {
       const res = await fetch('/api/daily-message', { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to load daily message')
       const data = await res.json()
       setDailyMessage(data)
     } catch {
@@ -408,9 +409,12 @@ function SpiritualityCardSummary({ results }: { results: { traditions?: string[]
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ factor: 'spirituality', factorResults: results, mantraOnly: true }),
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load mantra')
+        return res.json()
+      })
       .then(data => { if (!cancelled) setMantra(data.mantra ?? null) })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setMantra('I am at peace with the mystery.') })
     return () => { cancelled = true }
   }, [])
 

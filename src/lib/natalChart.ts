@@ -123,3 +123,65 @@ export function computeNatalChart(params: {
     timeUnknown,
   }
 }
+
+// Where the sky actually is right now — planet-in-sign position doesn't depend on the
+// observer's location, so any fixed lat/lon works for computing today's transiting planets.
+export function computeTransitingPlanets(date: Date = new Date()): ChartPlanet[] {
+  const iso = date.toISOString().split('T')[0]
+  return computeNatalChart({ birthDate: iso, birthTime: '12:00', lat: 0, lon: 0 }).planets
+}
+
+export interface TransitAspect {
+  transitPlanet: string
+  natalPlanet: string
+  aspect: string
+  orb: number
+}
+
+const ASPECT_ANGLES: { name: string; angle: number; orb: number }[] = [
+  { name: 'conjunct', angle: 0, orb: 6 },
+  { name: 'sextile', angle: 60, orb: 4 },
+  { name: 'square', angle: 90, orb: 6 },
+  { name: 'trine', angle: 120, orb: 6 },
+  { name: 'opposite', angle: 180, orb: 6 },
+]
+
+function angleDiff(a: number, b: number): number {
+  const diff = Math.abs(a - b) % 360
+  return diff > 180 ? 360 - diff : diff
+}
+
+// Fast-moving bodies only (Sun through Mars) — these are what actually change day to day.
+// Outer-planet transits last months to years and don't belong in a "today" reading.
+const FAST_TRANSIT_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars']
+
+export function computeTransitAspects(transiting: ChartPlanet[], natal: ChartPlanet[]): TransitAspect[] {
+  const hits: TransitAspect[] = []
+  for (const t of transiting) {
+    if (!FAST_TRANSIT_KEYS.includes(t.key)) continue
+    for (const n of natal) {
+      const diff = angleDiff(t.degree, n.degree)
+      for (const a of ASPECT_ANGLES) {
+        const orb = Math.abs(diff - a.angle)
+        if (orb <= a.orb) {
+          hits.push({ transitPlanet: t.label, natalPlanet: n.label, aspect: a.name, orb: Math.round(orb * 100) / 100 })
+        }
+      }
+    }
+  }
+  return hits.sort((a, b) => a.orb - b.orb)
+}
+
+const ZODIAC_ORDER = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
+const WHOLE_SIGN_ASPECT_NAMES: Record<number, string> = { 0: 'conjunct', 2: 'sextile', 3: 'square', 4: 'trine', 6: 'opposite' }
+
+// Whole-sign approximation for people without a full natal chart (no birth time/location on
+// file) — coarser than real degree-based aspects, but still grounded in a real sign relationship
+// rather than an invented one.
+export function wholeSignAspect(signA: string, signB: string): string | null {
+  const a = ZODIAC_ORDER.findIndex(s => s.toLowerCase() === signA?.toLowerCase())
+  const b = ZODIAC_ORDER.findIndex(s => s.toLowerCase() === signB?.toLowerCase())
+  if (a === -1 || b === -1) return null
+  const dist = Math.min(Math.abs(a - b), 12 - Math.abs(a - b))
+  return WHOLE_SIGN_ASPECT_NAMES[dist] ?? null
+}
