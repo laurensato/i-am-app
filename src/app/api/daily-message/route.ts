@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { computeTransitingPlanets, computeTransitAspects, wholeSignAspect, NatalChart } from '@/lib/natalChart'
+import { drawTarotCards } from '@/lib/tarotDeck'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, dangerouslyAllowBrowser: true })
 
-type FactorSnapshots = Record<string, { content?: string; mantra?: string }>
+type FactorSnapshots = Record<string, { content?: string; mantra?: string; cards?: string }>
 
 // The model sometimes wraps JSON output in a markdown code fence despite being told not to —
 // strip it before parsing so that doesn't silently trigger the fallback path.
@@ -20,7 +21,7 @@ async function getOrCreateSnapshot(
   userId: string,
   today: string,
   factor: string,
-  kind: 'content' | 'mantra',
+  kind: 'content' | 'mantra' | 'cards',
   generate: () => Promise<string>
 ): Promise<string> {
   const { data: existing } = await supabase
@@ -41,7 +42,7 @@ async function getOrCreateSnapshot(
     user_id: userId,
     date: today,
     factor_snapshots: nextSnapshots,
-  })
+  }, { onConflict: 'user_id,date' })
 
   return value
 }
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const { factor, factorResults, profile: bodyProfile, mantraOnly } = body
+  const { factor, factorResults, profile: bodyProfile, mantraOnly, cardsOnly } = body
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -63,10 +64,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ mantra })
   }
 
+  // If requesting just today's tarot draw (drawn once per day, cached, shown before the reading)
+  if (factor === 'tarot' && cardsOnly) {
+    const cardsJson = await getOrCreateSnapshot(supabase, user.id, today, factor, 'cards',
+      async () => JSON.stringify(drawTarotCards()))
+    return NextResponse.json({ cards: JSON.parse(cardsJson) })
+  }
+
   // If requesting a specific factor's daily content
   if (factor && factorResults) {
+    // Tarot's daily reading is always about today's freshly-drawn cards, not whatever cards
+    // were originally drawn at discovery — override with the same cached daily draw used above
+    // so the reading matches whatever the person actually revealed.
+    let effectiveResults = factorResults
+    if (factor === 'tarot') {
+      const cardsJson = await getOrCreateSnapshot(supabase, user.id, today, factor, 'cards',
+        async () => JSON.stringify(drawTarotCards()))
+      effectiveResults = { ...factorResults, cards: JSON.parse(cardsJson) }
+    }
+
     const content = await getOrCreateSnapshot(supabase, user.id, today, factor, 'content',
-      () => generateFactorContent(factor, factorResults, bodyProfile))
+      () => generateFactorContent(factor, effectiveResults, bodyProfile))
     return NextResponse.json({ factor_content: content })
   }
 
@@ -99,18 +117,30 @@ export async function POST(req: NextRequest) {
     ? `Name: ${profile.first_name}, Age: ${profile.age}, Gender: ${profile.gender}`
     : 'Unknown'
 
-  const factorSummary = (factors ?? []).map(f => {
+  // Generates (or reuses) each non-tarot factor's own daily reading as a side effect of
+  // building this summary, so opening the dashboard is what causes every identity reading to
+  // exist for the day — not waiting on the person to click into each factor's page individually.
+  // Tarot is excluded: its daily draw is meant to be revealed through the flip interaction, not
+  // pre-generated behind the scenes.
+  const factorSummary = (await Promise.all((factors ?? []).map(async f => {
     const r = f.results as Record<string, unknown>
     switch (f.factor_type) {
-      case 'western_astrology': return `Western Astrology: Sun ${(r as {sun_sign?:string}).sun_sign}, Moon ${(r as {moon_sign?:string}).moon_sign}, Rising ${(r as {rising_sign?:string}).rising_sign}`
-      case 'eastern_astrology': return `Eastern Astrology: ${(r as {element?:string}).element} ${(r as {animal?:string}).animal}`
-      case 'spirituality': return `Spiritual traditions: ${((r as {traditions?:string[]}).traditions ?? []).join(', ')}`
-      case 'tarot': return `Tarot cards drawn: ${((r as {cards?:{name:string}[]}).cards ?? []).map(c => c.name).join(', ')}`
-      case 'values': return `Core values: ${((r as {top_values?:string[]}).top_values ?? []).join(', ')}`
-      case 'ikigai': return `Ikigai: ${(r as {ikigai_statement?:string}).ikigai_statement}`
+      case 'tarot':
+        return `Tarot cards drawn: ${((r as {cards?:{name:string}[]}).cards ?? []).map(c => c.name).join(', ')}`
+      case 'western_astrology':
+      case 'eastern_astrology':
+      case 'spirituality':
+      case 'values':
+      case 'ikigai': {
+        const labels: Record<string, string> = { western_astrology: 'Western Astrology', eastern_astrology: 'Eastern Astrology', spirituality: 'Spirituality', values: 'Values', ikigai: 'Ikigai' }
+        const label = labels[f.factor_type as string]
+        const todaysReading = await getOrCreateSnapshot(supabase, user.id, today, f.factor_type, 'content',
+          () => generateFactorContent(f.factor_type, r, profile))
+        return `${label} today: ${todaysReading}`
+      }
       default: return ''
     }
-  }).filter(Boolean).join('\n')
+  }))).filter(Boolean).join('\n')
 
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' })
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
@@ -152,7 +182,7 @@ No markdown formatting of any kind — not in the JSON structure, and not inside
       date: today,
       insight,
       mantra,
-    })
+    }, { onConflict: 'user_id,date' })
 
     return NextResponse.json({ insight, mantra })
   } catch {
@@ -165,7 +195,7 @@ No markdown formatting of any kind — not in the JSON structure, and not inside
       user_id: user.id,
       date: today,
       ...fallback,
-    })
+    }, { onConflict: 'user_id,date' })
 
     return NextResponse.json(fallback)
   }
@@ -322,12 +352,12 @@ async function generateTarotReading(
 
   if (!cards.length) return fallback()
 
-  const prompt = `You are a tarot reader. Today is ${dayOfWeek}. This person previously drew these cards:
+  const prompt = `You are a tarot reader. Today is ${dayOfWeek}. These cards were drawn:
 ${cardList}
 
-For each card, write a 2-3 sentence reflection on how that specific card's energy might be showing up for them today, in new ways. Reflective, not predictive.${personalization}
+For each card, write a 2-3 sentence reflection that names what that card traditionally means and how that meaning might be showing up today, in new ways. Reflective, not predictive.${personalization}
 
-Then write a separate 3-4 sentence summary that weaves all the cards together into one cohesive reading for today.
+Then write a separate 3-4 sentence summary that interprets the three cards together as one cohesive reading — how the meanings build on or play off each other across past, present, and future, not just a recap of each card individually.
 
 Return JSON only, in this exact shape, with one "cards" entry per card above using its exact position name:
 {
@@ -339,7 +369,7 @@ No markdown formatting of any kind — not in the JSON structure, and not inside
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 512,
+      max_tokens: 1200,
       messages: [{ role: 'user', content: prompt }],
     })
     const block = response.content[0]

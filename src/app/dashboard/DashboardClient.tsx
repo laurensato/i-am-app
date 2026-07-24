@@ -1,11 +1,11 @@
 'use client'
-import { useState, useEffect, createElement } from 'react'
+import { useState, useEffect, useRef, createElement } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Sun, Moon, ArrowUp, Sparkle, ArrowRight } from '@phosphor-icons/react'
+import { Sun, Moon, ArrowUp, Sparkle, ArrowRight, CaretDown } from '@phosphor-icons/react'
 import { FactorType, FACTOR_META, IdentityFactor, UserProfile } from '@/lib/types'
 import { getTarotCardImage } from '@/lib/tarotImages'
 import { getZodiacAnimalIcon, getZodiacElementIcon } from '@/lib/zodiacIcons'
@@ -48,6 +48,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
   async function handleSignOut() {
     await supabase.auth.signOut()
     router.push('/')
+    router.refresh()
   }
 
   const completedFactors = factors.filter(f => f.discovery_completed)
@@ -62,10 +63,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
           I AM
         </h1>
         <div className="flex items-center gap-4">
-          <span className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>{profile.first_name}</span>
-          <button onClick={handleSignOut} className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>
-            Sign out
-          </button>
+          <AccountMenu firstName={profile.first_name} onSignOut={handleSignOut} />
         </div>
       </header>
 
@@ -181,6 +179,104 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
         )}
       </div>
     </main>
+  )
+}
+
+function AccountMenu({ firstName, onSignOut }: { firstName: string; onSignOut: () => void }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  async function handleDeleteAccount() {
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to delete account')
+      router.push('/')
+      router.refresh()
+    } catch {
+      setDeleting(false)
+      setDeleteError("Something went wrong — your account wasn't deleted. Please try again.")
+    }
+  }
+
+  return (
+    <>
+      <div className="relative" ref={menuRef}>
+        <button onClick={() => setOpen(o => !o)}
+          className="flex items-center gap-1 text-sm font-light" style={{ color: 'var(--text-muted)' }}>
+          {firstName}
+          <CaretDown size={12} weight="bold" />
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 mt-2 w-44 rounded-xl overflow-hidden card-shadow z-50"
+              style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+              <button onClick={() => { setOpen(false); onSignOut() }}
+                className="w-full text-left px-4 py-3 text-sm font-light transition-colors hover:bg-black/5"
+                style={{ color: 'var(--text-primary)' }}>
+                Sign out
+              </button>
+              <button onClick={() => { setOpen(false); setDeleteError(''); setConfirmDelete(true) }}
+                className="w-full text-left px-4 py-3 text-sm font-light border-t transition-colors hover:bg-black/5 text-red-600"
+                style={{ borderColor: 'var(--parchment)' }}>
+                Delete account
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {confirmDelete && (
+          <motion.div className="fixed inset-0 flex items-center justify-center px-6 z-50"
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => !deleting && setConfirmDelete(false)}>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm p-6 rounded-2xl card-shadow"
+              style={{ backgroundColor: 'var(--warm-white)' }}
+              onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+                Delete your account?
+              </h3>
+              <p className="text-sm font-light mb-6" style={{ color: 'var(--text-muted)' }}>
+                This permanently deletes your account and everything in it — your profile, discoveries, and daily history. This can&apos;t be undone.
+              </p>
+              {deleteError && <p className="text-sm text-red-600 mb-4">{deleteError}</p>}
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmDelete(false)} disabled={deleting}
+                  className="flex-1 py-3 rounded-xl text-sm font-medium disabled:opacity-60"
+                  style={{ backgroundColor: 'var(--parchment)', color: 'var(--text-secondary)' }}>
+                  Cancel
+                </button>
+                <button onClick={handleDeleteAccount} disabled={deleting}
+                  className="flex-1 py-3 rounded-xl text-sm font-medium text-white bg-red-600 disabled:opacity-60">
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
 

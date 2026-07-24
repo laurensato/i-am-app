@@ -27,9 +27,28 @@ export default function DailyView({ factor, factorRow, profile, userId }: Props)
   const results = factorRow.results as Record<string, unknown>
 
   const isTarot = factor === 'tarot'
-  const cards = ((results as { cards?: TarotCard[] }).cards ?? [])
+  // Tarot draws fresh each day (server-decided, cached for the day) rather than reusing the
+  // cards from the original discovery draw — fetched separately so the flip cards can render
+  // before the reading itself is generated.
+  const [todaysCards, setTodaysCards] = useState<TarotCard[] | null>(null)
   const [revealed, setRevealed] = useState<Set<number>>(new Set())
-  const readyForReading = !isTarot || (cards.length > 0 && revealed.size === cards.length)
+  const cards = todaysCards ?? []
+  const cardsLoaded = !isTarot || todaysCards !== null
+  const readyForReading = !isTarot || (cardsLoaded && cards.length > 0 && revealed.size === cards.length)
+
+  useEffect(() => {
+    if (!isTarot) return
+    let cancelled = false
+    fetch('/api/daily-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ factor: 'tarot', cardsOnly: true }),
+    })
+      .then(res => { if (!res.ok) throw new Error('Failed to load today’s cards'); return res.json() })
+      .then(data => { if (!cancelled) setTodaysCards(data.cards ?? []) })
+      .catch(() => { if (!cancelled) setTodaysCards([]) })
+    return () => { cancelled = true }
+  }, [isTarot])
 
   useEffect(() => {
     if (!readyForReading) return
@@ -70,7 +89,15 @@ export default function DailyView({ factor, factorRow, profile, userId }: Props)
         </p>
       </div>
 
-      {isTarot && (
+      {isTarot && !cardsLoaded && (
+        <div className="flex justify-center gap-4">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="rounded-xl animate-pulse" style={{ width: 96, height: 168, backgroundColor: 'var(--parchment)' }} />
+          ))}
+        </div>
+      )}
+
+      {isTarot && cardsLoaded && (
         <TarotCardReveal
           cards={cards}
           revealed={revealed}
@@ -78,7 +105,7 @@ export default function DailyView({ factor, factorRow, profile, userId }: Props)
         />
       )}
 
-      {isTarot && !readyForReading ? (
+      {isTarot && !cardsLoaded ? null : isTarot && !readyForReading ? (
         <p className="text-sm font-light text-center" style={{ color: 'var(--text-muted)' }}>
           Tap each card to reveal it and unlock today&apos;s reading.
         </p>
@@ -333,14 +360,11 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
   }
 
   if (factor === 'tarot') {
-    const r = results as { summary?: string }
-    if (!r.summary) return null
-    return (
-      <div className="p-6 rounded-2xl card-shadow" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
-        <p className="text-xs font-medium mb-2 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>Your Reading</p>
-        <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{r.summary}</p>
-      </div>
-    )
+    // The original discovery-time reading is a fixed interpretation of whatever cards were
+    // drawn at onboarding. Now that the daily view draws fresh cards every day, showing that
+    // permanent reading alongside a different daily draw would never look connected — the flip
+    // cards and today's insight above are the full reading now, so there's nothing else to show.
+    return null
   }
 
   if (factor === 'values') {
