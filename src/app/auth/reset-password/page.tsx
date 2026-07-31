@@ -2,8 +2,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Sparkle } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
+import Logo from '@/components/Logo'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -35,15 +35,15 @@ export default function ResetPasswordPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6" style={{ backgroundColor: 'var(--cream)' }}>
       <motion.div
-        className="w-full max-w-sm p-8 rounded-3xl card-shadow"
-        style={{ backgroundColor: 'var(--warm-white)' }}
+        className="w-full max-w-sm p-8"
+        style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <div className="text-center mb-8">
-          <div className="mb-4 flex justify-center" style={{ color: 'var(--text-secondary)' }}><Sparkle size={36} weight="thin" /></div>
-          <h1 className="text-4xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+          <div className="mb-4 flex justify-center" style={{ color: 'var(--text-primary)' }}><Logo size={56} variant="lines" /></div>
+          <h1 className="text-4xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)', letterSpacing: '0.24em', textIndent: '0.24em' }}>
             I AM
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>Set a new password</p>
@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
             onChange={e => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full px-4 py-3 rounded-xl border text-base outline-none transition-all"
+            className="w-full px-4 py-3 border text-base outline-none transition-all"
             style={{
               borderColor: 'var(--parchment)',
               backgroundColor: 'var(--warm-white)',
@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
             onChange={e => setConfirmPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full px-4 py-3 rounded-xl border text-base outline-none transition-all"
+            className="w-full px-4 py-3 border text-base outline-none transition-all"
             style={{
               borderColor: 'var(--parchment)',
               backgroundColor: 'var(--warm-white)',
@@ -84,9 +84,9 @@ export default function ResetPasswordPage() {
           <motion.button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-xl text-white font-medium text-base mt-2 disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
-            whileHover={{ scale: 1.02 }}
+            className="w-full py-4 font-medium text-base mt-2 disabled:opacity-60"
+            style={{ backgroundColor: 'var(--cta-bg)', color: 'var(--cta-text)' }}
+            whileHover={{ opacity: 0.85 }}
             whileTap={{ scale: 0.98 }}
           >
             {loading ? '...' : 'Update password'}

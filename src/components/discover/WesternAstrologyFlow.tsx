@@ -52,7 +52,7 @@ export default function WesternAstrologyFlow({ profile, userId, onComplete }: Pr
             { icon: <Moon size={24} weight="thin" />, label: 'Moon', value: results.moon_sign },
             { icon: <ArrowUp size={24} weight="thin" />, label: 'Rising', value: results.rising_sign },
           ].map(a => (
-            <div key={a.label} className="flex-1 text-center p-4 rounded-xl"
+            <div key={a.label} className="flex-1 text-center p-4"
               style={{ backgroundColor: 'var(--parchment)' }}>
               <div className="mb-1 flex justify-center" style={{ color: 'var(--text-secondary)' }}>{a.icon}</div>
               <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>{a.label}</div>
@@ -64,7 +64,7 @@ export default function WesternAstrologyFlow({ profile, userId, onComplete }: Pr
 
         {results.chart && (
           <div className="flex flex-col gap-4">
-            <div className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--parchment)' }}>
+            <div className="p-4" style={{ backgroundColor: 'var(--parchment)' }}>
               <NatalChartWheel chart={results.chart} />
             </div>
             <div>
@@ -93,19 +93,19 @@ export default function WesternAstrologyFlow({ profile, userId, onComplete }: Pr
 
       <Field label="Date of Birth">
         <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border outline-none text-base"
+          className="w-full px-4 py-3 border outline-none text-base"
           style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }} />
       </Field>
 
       <Field label="Time of Birth" hint="Approximate is fine — leave blank if unknown">
         <input type="time" value={birthTime} onChange={e => setBirthTime(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border outline-none text-base"
+          className="w-full px-4 py-3 border outline-none text-base"
           style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }} />
       </Field>
 
       <Field label="Place of Birth" hint="City, Country">
         <input type="text" placeholder="e.g. Chicago, USA" value={birthPlace} onChange={e => setBirthPlace(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border outline-none text-base"
+          className="w-full px-4 py-3 border outline-none text-base"
           style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }} />
       </Field>
 

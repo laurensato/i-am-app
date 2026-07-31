@@ -2,8 +2,8 @@
 import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Sparkle } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
+import Logo from '@/components/Logo'
 
 type View = 'signin' | 'signup' | 'forgot' | 'magic'
 
@@ -87,8 +87,8 @@ function AuthForm() {
   return (
     <div>
       <div className="text-center mb-8">
-        <div className="mb-4 flex justify-center" style={{ color: 'var(--text-secondary)' }}><Sparkle size={36} weight="thin" /></div>
-        <h1 className="text-4xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <div className="mb-4 flex justify-center" style={{ color: 'var(--text-primary)' }}><Logo size={56} variant="lines" /></div>
+        <h1 className="text-4xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)', letterSpacing: '0.24em', textIndent: '0.24em' }}>
           I AM
         </h1>
         <p style={{ color: 'var(--text-muted)' }}>{title}</p>
@@ -101,7 +101,7 @@ function AuthForm() {
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
-          className="w-full px-4 py-3 rounded-xl border text-base outline-none transition-all"
+          className="w-full px-4 py-3 border text-base outline-none transition-all"
           style={{
             borderColor: 'var(--parchment)',
             backgroundColor: 'var(--warm-white)',
@@ -116,7 +116,7 @@ function AuthForm() {
             onChange={e => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full px-4 py-3 rounded-xl border text-base outline-none transition-all"
+            className="w-full px-4 py-3 border text-base outline-none transition-all"
             style={{
               borderColor: 'var(--parchment)',
               backgroundColor: 'var(--warm-white)',
@@ -137,9 +137,9 @@ function AuthForm() {
         <motion.button
           type="submit"
           disabled={loading}
-          className="w-full py-4 rounded-xl text-white font-medium text-base mt-2 disabled:opacity-60"
-          style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
-          whileHover={{ scale: 1.02 }}
+          className="w-full py-4 font-medium text-base mt-2 disabled:opacity-60"
+          style={{ backgroundColor: 'var(--cta-bg)', color: 'var(--cta-text)' }}
+          whileHover={{ opacity: 0.85 }}
           whileTap={{ scale: 0.98 }}
         >
           {buttonLabel}
@@ -148,14 +148,14 @@ function AuthForm() {
 
       {view === 'signin' && (
         <button onClick={() => { setView('magic'); setError('') }}
-          className="w-full text-center mt-4 text-sm underline" style={{ color: 'var(--terracotta)' }}>
+          className="w-full text-center mt-4 text-sm underline" style={{ color: 'var(--text-primary)' }}>
           Sign in with a magic link instead
         </button>
       )}
 
       {(view === 'forgot' || view === 'magic') && (
         <button onClick={() => { setView('signin'); setError('') }}
-          className="w-full text-center mt-4 text-sm underline" style={{ color: 'var(--terracotta)' }}>
+          className="w-full text-center mt-4 text-sm underline" style={{ color: 'var(--text-primary)' }}>
           Back to sign in
         </button>
       )}
@@ -164,7 +164,7 @@ function AuthForm() {
         <p className="text-center mt-6 text-sm" style={{ color: 'var(--text-muted)' }}>
           {isSignup ? 'Already have an account? ' : "Don't have an account? "}
           <a href={isSignup ? '/auth?mode=signin' : '/auth?mode=signup'}
-            className="underline" style={{ color: 'var(--terracotta)' }}>
+            className="underline" style={{ color: 'var(--text-primary)' }}>
             {isSignup ? 'Sign in' : 'Sign up'}
           </a>
         </p>
@@ -178,8 +178,8 @@ export default function AuthPage() {
     <main className="min-h-screen flex items-center justify-center px-6"
       style={{ backgroundColor: 'var(--cream)' }}>
       <motion.div
-        className="w-full max-w-sm p-8 rounded-3xl card-shadow"
-        style={{ backgroundColor: 'var(--warm-white)' }}
+        className="w-full max-w-sm p-8"
+        style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}

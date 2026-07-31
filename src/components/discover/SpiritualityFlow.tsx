@@ -128,7 +128,7 @@ export default function SpiritualityFlow({ profile, userId, onComplete }: Props)
           <div className="flex flex-wrap gap-2">
             {results.traditions.map(t => (
               <span key={t} className="px-3 py-1.5 rounded-full text-sm font-medium"
-                style={{ backgroundColor: 'rgba(95,123,78,0.15)', color: 'var(--sage)' }}>
+                style={{ backgroundColor: 'var(--selected-bg)', color: 'var(--text-primary)' }}>
                 {t}
               </span>
             ))}
@@ -163,7 +163,7 @@ export default function SpiritualityFlow({ profile, userId, onComplete }: Props)
           <span>{Math.round(progress)}%</span>
         </div>
         <div className="h-1.5 rounded-full" style={{ backgroundColor: 'var(--parchment)' }}>
-          <motion.div className="h-full rounded-full" style={{ backgroundColor: 'var(--sage)' }}
+          <motion.div className="h-full rounded-full" style={{ backgroundColor: 'var(--text-primary)' }}
             animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
         </div>
       </div>
@@ -181,19 +181,19 @@ export default function SpiritualityFlow({ profile, userId, onComplete }: Props)
               const sel = (answers[q.id] ?? []).includes(opt)
               return (
                 <motion.button key={opt} onClick={() => toggleAnswer(opt)}
-                  className="flex items-center gap-3 text-left px-5 py-4 rounded-2xl border text-sm font-light transition-all"
+                  className="flex items-center gap-3 text-left px-5 py-4 border text-sm font-light transition-all"
                   style={{
-                    borderColor: sel ? 'var(--sage)' : 'var(--parchment)',
-                    backgroundColor: sel ? 'rgba(95,123,78,0.1)' : 'var(--warm-white)',
+                    borderColor: sel ? 'var(--selected-border)' : 'var(--parchment)',
+                    backgroundColor: sel ? 'var(--selected-bg)' : 'var(--warm-white)',
                     color: 'var(--text-primary)',
                   }}
-                  whileHover={{ scale: 1.01, borderColor: 'var(--sage)' }}
+                  whileHover={{ scale: 1.01, borderColor: 'var(--selected-border)' }}
                   whileTap={{ scale: 0.98 }}>
-                  <span className="flex items-center justify-center rounded-md border shrink-0"
+                  <span className="flex items-center justify-center border shrink-0"
                     style={{
                       width: 18, height: 18,
-                      borderColor: sel ? 'var(--sage)' : 'var(--parchment)',
-                      backgroundColor: sel ? 'var(--sage)' : 'transparent',
+                      borderColor: sel ? 'var(--selected-border)' : 'var(--parchment)',
+                      backgroundColor: sel ? 'var(--text-primary)' : 'transparent',
                     }}>
                     {sel && <Check size={12} weight="bold" color="white" />}
                   </span>

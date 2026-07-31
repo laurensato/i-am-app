@@ -1,26 +1,29 @@
 import type { Metadata } from 'next'
-import { Cormorant, Outfit, Space_Mono } from 'next/font/google'
+import { Jost, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 
-const cormorant = Cormorant({
+// Both --font-serif and --font-sans resolve to Jost 300 — the identity system uses one
+// light sans throughout (display and body), so the two variable names stay distinct hooks
+// for any future divergence but carry the same font today.
+const jost = Jost({
   variable: '--font-serif',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+  weight: ['300', '500'],
+  style: ['normal'],
   display: 'swap',
 })
 
-const outfit = Outfit({
+const jostSans = Jost({
   variable: '--font-sans',
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['300', '400', '500'],
   display: 'swap',
 })
 
-const spaceMono = Space_Mono({
+const plexMono = IBM_Plex_Mono({
   variable: '--font-mono',
   subsets: ['latin'],
-  weight: ['400', '700'],
+  weight: ['400', '500'],
   display: 'swap',
 })
 
@@ -31,7 +34,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${outfit.variable} ${spaceMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${jost.variable} ${jostSans.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col" style={{ fontFamily: 'var(--font-sans)', backgroundColor: 'var(--cream)' }}>
         {children}
       </body>

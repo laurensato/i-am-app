@@ -85,7 +85,7 @@ export default function TarotFlow({ profile, userId, onComplete }: Props) {
           {results.cards.map(card => {
             const img = getTarotCardImage(card.name)
             return (
-              <div key={card.position} className="flex gap-4 p-4 rounded-xl" style={{ backgroundColor: 'var(--parchment)' }}>
+              <div key={card.position} className="flex gap-4 p-4" style={{ backgroundColor: 'var(--parchment)' }}>
                 {img && (
                   <div className="relative shrink-0 rounded-lg overflow-hidden" style={{ width: 64, height: 113 }}>
                     <Image src={img} alt={card.name} fill sizes="64px" className="object-cover"
@@ -139,14 +139,14 @@ export default function TarotFlow({ profile, userId, onComplete }: Props) {
           placeholder="e.g. What do I need to understand about this next chapter of my life?"
           value={intention}
           onChange={e => setIntention(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border outline-none text-base resize-none"
+          className="w-full px-4 py-3 border outline-none text-base resize-none"
           style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }}
         />
         <motion.button
           onClick={startShuffle}
           disabled={!intention.trim()}
-          className="w-full py-4 rounded-xl text-white font-medium text-base disabled:opacity-50"
-          style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
+          className="w-full py-4 font-medium text-base disabled:opacity-50"
+          style={{ backgroundColor: 'var(--cta-bg)', color: 'var(--cta-text)' }}
           whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           Shuffle the Deck
         </motion.button>
@@ -200,8 +200,8 @@ export default function TarotFlow({ profile, userId, onComplete }: Props) {
                 onClick={() => canDraw && drawCard(pos)}
                 className="w-full aspect-[2/3] rounded-2xl flex items-center justify-center cursor-pointer border-2 transition-all relative overflow-hidden"
                 style={{
-                  borderColor: card ? 'var(--gold)' : canDraw ? 'var(--terracotta)' : 'var(--parchment)',
-                  backgroundColor: card ? 'var(--parchment)' : canDraw ? 'rgba(196,113,74,0.06)' : 'var(--warm-white)',
+                  borderColor: card ? 'var(--text-primary)' : canDraw ? 'var(--text-primary)' : 'var(--parchment)',
+                  backgroundColor: card ? 'var(--parchment)' : canDraw ? 'var(--selected-bg)' : 'var(--warm-white)',
                 }}
                 whileHover={canDraw ? { scale: 1.03 } : {}}
                 whileTap={canDraw ? { scale: 0.97 } : {}}
@@ -220,7 +220,7 @@ export default function TarotFlow({ profile, userId, onComplete }: Props) {
                             style={{ transform: card.reversed ? 'rotate(180deg)' : 'none' }} />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center text-center p-3">
-                            <div className="mb-2 flex justify-center" style={{ color: 'var(--gold)' }}>
+                            <div className="mb-2 flex justify-center" style={{ color: 'var(--text-primary)' }}>
                               <Cards size={28} weight="thin" />
                             </div>
                             <p className="text-xs font-semibold leading-tight" style={{
@@ -239,8 +239,8 @@ export default function TarotFlow({ profile, userId, onComplete }: Props) {
                   ) : (
                     <div className="text-center flex flex-col items-center gap-1">
                       {canDraw ? (
-                        <><div style={{ color: 'var(--terracotta)' }}><Sparkle size={24} weight="thin" /></div>
-                        <p className="text-xs" style={{ color: 'var(--terracotta)' }}>Tap</p></>
+                        <><div style={{ color: 'var(--text-primary)' }}><Sparkle size={24} weight="thin" /></div>
+                        <p className="text-xs" style={{ color: 'var(--text-primary)' }}>Tap</p></>
                       ) : (
                         <div className="opacity-20" style={{ color: 'var(--text-muted)' }}><Cards size={24} weight="thin" /></div>
                       )}

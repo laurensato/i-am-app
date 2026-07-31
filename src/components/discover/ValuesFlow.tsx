@@ -140,9 +140,9 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
       <ResultCard title="Your Core Values" onContinue={onComplete}>
         <div className="flex flex-col gap-3 mb-6">
           {results.top_values.map((v, i) => (
-            <div key={v} className="p-4 rounded-xl" style={{ backgroundColor: 'var(--parchment)' }}>
+            <div key={v} className="p-4" style={{ backgroundColor: 'var(--parchment)' }}>
               <div className="flex items-center gap-4 mb-1">
-                <span className="text-xl font-normal" style={{ color: 'var(--gold)', fontFamily: 'var(--font-serif)', minWidth: 24 }}>
+                <span className="text-xl font-normal" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', minWidth: 24 }}>
                   {i + 1}
                 </span>
                 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{v}</span>
@@ -174,12 +174,12 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
           <div className="flex gap-1 mb-2">
             {top5.map((_, i) => (
               <div key={i} className="flex-1 h-1 rounded-full transition-all"
-                style={{ backgroundColor: i <= reflectIndex ? 'var(--gold)' : 'var(--parchment)' }} />
+                style={{ backgroundColor: i <= reflectIndex ? 'var(--text-primary)' : 'var(--parchment)' }} />
             ))}
           </div>
 
           <div>
-            <p className="text-xs font-medium mb-2 tracking-widest uppercase" style={{ color: 'var(--gold)' }}>
+            <p className="text-xs font-medium mb-2 tracking-widest uppercase" style={{ color: 'var(--text-primary)' }}>
               #{reflectIndex + 1} · {value}
             </p>
             <h2 className="text-2xl font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
@@ -195,7 +195,7 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
             placeholder={`e.g. ${value} matters to me because...`}
             value={reflections[value] ?? ''}
             onChange={e => setReflections({ ...reflections, [value]: e.target.value })}
-            className="w-full px-4 py-3 rounded-xl border outline-none text-base resize-none"
+            className="w-full px-4 py-3 border outline-none text-base resize-none"
             style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }}
           />
 
@@ -243,13 +243,13 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
           <AnimatePresence>
             {ranked.map((v, i) => (
               <motion.div key={v} layout
-                className="flex items-center gap-3 p-4 rounded-xl border"
+                className="flex items-center gap-3 p-4 border"
                 style={{
-                  backgroundColor: i < 5 ? 'rgba(238,108,90,0.08)' : 'var(--warm-white)',
-                  borderColor: i < 5 ? 'var(--gold)' : 'var(--parchment)',
+                  backgroundColor: i < 5 ? 'var(--selected-bg)' : 'var(--warm-white)',
+                  borderColor: i < 5 ? 'var(--selected-border)' : 'var(--parchment)',
                 }}>
                 <span className="text-sm font-bold w-6 text-center"
-                  style={{ color: i < 5 ? 'var(--gold)' : 'var(--text-muted)' }}>
+                  style={{ color: i < 5 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                   {i + 1}
                 </span>
                 <span className="flex-1 font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{v}</span>
@@ -295,9 +295,9 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
               <motion.button key={v} onClick={() => toggleTop10(v)}
                 className="px-3 py-2 rounded-full text-sm border transition-all"
                 style={{
-                  borderColor: sel ? 'var(--gold)' : 'var(--parchment)',
-                  backgroundColor: sel ? 'rgba(238,108,90,0.15)' : 'var(--warm-white)',
-                  color: sel ? 'var(--warm-brown)' : 'var(--text-secondary)',
+                  borderColor: sel ? 'var(--selected-border)' : 'var(--parchment)',
+                  backgroundColor: sel ? 'var(--selected-bg)' : 'var(--warm-white)',
+                  color: sel ? 'var(--text-primary)' : 'var(--text-secondary)',
                 }}
                 whileTap={{ scale: 0.95 }}>
                 {v}
@@ -325,7 +325,7 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
             <span>{Math.round(progress)}%</span>
           </div>
           <div className="h-1.5 rounded-full" style={{ backgroundColor: 'var(--parchment)' }}>
-            <motion.div className="h-full rounded-full" style={{ backgroundColor: 'var(--gold)' }}
+            <motion.div className="h-full rounded-full" style={{ backgroundColor: 'var(--text-primary)' }}
               animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
           </div>
         </div>
@@ -340,20 +340,20 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
 
             <div className="flex flex-col gap-3">
               <motion.button onClick={() => categorize('not_important')}
-                className="w-full py-4 px-5 rounded-2xl border text-sm font-light text-left transition-all"
+                className="w-full py-4 px-5 border text-sm font-light text-left transition-all"
                 style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-muted)' }}
                 whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
                 Not important to me
               </motion.button>
               <motion.button onClick={() => categorize('important')}
-                className="w-full py-4 px-5 rounded-2xl border text-sm font-medium text-left transition-all"
-                style={{ borderColor: 'var(--sage-light)', backgroundColor: 'rgba(95,123,78,0.08)', color: 'var(--text-secondary)' }}
+                className="w-full py-4 px-5 border text-sm font-medium text-left transition-all"
+                style={{ borderColor: 'var(--text-muted)', backgroundColor: 'var(--warm-white)', color: 'var(--text-secondary)' }}
                 whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
                 Important to me
               </motion.button>
               <motion.button onClick={() => categorize('very_important')}
-                className="w-full py-4 px-5 rounded-2xl border text-base font-semibold text-left transition-all"
-                style={{ borderColor: 'var(--gold)', backgroundColor: 'rgba(238,108,90,0.1)', color: 'var(--warm-brown)' }}
+                className="w-full py-4 px-5 border text-base font-semibold text-left transition-all"
+                style={{ borderColor: 'var(--selected-border)', backgroundColor: 'var(--selected-bg)', color: 'var(--text-primary)' }}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 Very important to me
               </motion.button>
@@ -386,9 +386,9 @@ export default function ValuesFlow({ profile, userId, onComplete }: Props) {
       </div>
       <motion.button
         onClick={() => setPhase('sort')}
-        className="w-full py-4 rounded-xl text-white font-medium text-base"
-        style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
-        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+        className="w-full py-4 font-medium text-base"
+        style={{ backgroundColor: 'var(--cta-bg)', color: 'var(--cta-text)' }}
+        whileHover={{ opacity: 0.85 }} whileTap={{ scale: 0.98 }}>
         Begin
       </motion.button>
     </motion.div>

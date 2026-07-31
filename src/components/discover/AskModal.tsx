@@ -50,7 +50,7 @@ export default function AskModal({ factor, results, profile }: Props) {
       <motion.button
         onClick={() => setOpen(true)}
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center text-white z-40"
-        style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
+        style={{ backgroundColor: 'var(--cta-bg)', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Ask a question about this reading"
@@ -68,8 +68,8 @@ export default function AskModal({ factor, results, profile }: Props) {
               onClick={() => setOpen(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-lg rounded-t-3xl flex flex-col"
-              style={{ backgroundColor: 'var(--warm-white)', height: 'min(80vh, 640px)' }}
+              className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-lg flex flex-col"
+              style={{ backgroundColor: 'var(--warm-white)', height: 'min(80vh, 640px)', borderTop: '1px solid var(--parchment)' }}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             >
@@ -93,8 +93,8 @@ export default function AskModal({ factor, results, profile }: Props) {
                     className="max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
                     style={{
                       alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                      backgroundColor: m.role === 'user' ? 'var(--gold)' : 'var(--parchment)',
-                      color: m.role === 'user' ? 'white' : 'var(--text-primary)',
+                      backgroundColor: m.role === 'user' ? 'var(--cta-bg)' : 'var(--parchment)',
+                      color: m.role === 'user' ? 'var(--cta-text)' : 'var(--text-primary)',
                     }}>
                     {m.content}
                   </div>
@@ -120,7 +120,7 @@ export default function AskModal({ factor, results, profile }: Props) {
                 />
                 <button onClick={send} disabled={!input.trim() || loading}
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 disabled:opacity-40"
-                  style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
+                  style={{ backgroundColor: 'var(--cta-bg)' }}
                   aria-label="Send">
                   <PaperPlaneRight size={16} weight="fill" />
                 </button>

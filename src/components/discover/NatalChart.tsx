@@ -16,11 +16,11 @@ const PLANET_SYMBOLS: Record<string, string> = {
 }
 
 const ASPECT_STYLE: Record<string, { color: string; width: number }> = {
-  conjunction: { color: 'var(--gold)', width: 1 },
-  opposition: { color: 'var(--forest)', width: 1.25 },
-  square: { color: 'var(--forest)', width: 1 },
-  trine: { color: 'var(--sage)', width: 1.25 },
-  sextile: { color: 'var(--sage-light)', width: 1 },
+  conjunction: { color: 'var(--aspect-conjunction)', width: 1 },
+  opposition: { color: 'var(--aspect-opposition)', width: 1.25 },
+  square: { color: 'var(--aspect-square)', width: 1 },
+  trine: { color: 'var(--aspect-trine)', width: 1.25 },
+  sextile: { color: 'var(--aspect-sextile)', width: 1 },
 }
 
 const CENTER = 170
@@ -125,12 +125,12 @@ export default function NatalChartWheel({ chart }: { chart: NatalChartData }) {
           const mcLabel = pointOn(chart.midheaven.degree, asc, R_ZODIAC_OUTER + 12)
           return (
             <>
-              <line x1={CENTER} y1={CENTER} x2={ascPt.x} y2={ascPt.y} stroke="var(--gold)" strokeWidth={1.5} />
+              <line x1={CENTER} y1={CENTER} x2={ascPt.x} y2={ascPt.y} stroke="var(--aspect-conjunction)" strokeWidth={1.5} />
               <text x={ascLabel.x} y={ascLabel.y} textAnchor="middle" dominantBaseline="central"
-                fontSize="9" fontWeight="600" fill="var(--gold)">ASC</text>
-              <line x1={CENTER} y1={CENTER} x2={mcPt.x} y2={mcPt.y} stroke="var(--forest)" strokeWidth={1.5} />
+                fontSize="9" fontWeight="600" fill="var(--aspect-conjunction)">ASC</text>
+              <line x1={CENTER} y1={CENTER} x2={mcPt.x} y2={mcPt.y} stroke="var(--aspect-opposition)" strokeWidth={1.5} />
               <text x={mcLabel.x} y={mcLabel.y} textAnchor="middle" dominantBaseline="central"
-                fontSize="9" fontWeight="600" fill="var(--forest)">MC</text>
+                fontSize="9" fontWeight="600" fill="var(--aspect-opposition)">MC</text>
             </>
           )
         })()}
@@ -152,7 +152,7 @@ export function AspectsTable({ chart }: { chart: NatalChartData }) {
   const labelFor = (key: string) => chart.planets.find(p => p.key === key)?.label ?? key
 
   return (
-    <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--parchment)' }}>
+    <div className="overflow-x-auto border" style={{ borderColor: 'var(--parchment)' }}>
       <table className="w-full text-sm">
         <thead>
           <tr style={{ backgroundColor: 'var(--parchment)' }}>

@@ -149,17 +149,17 @@ function TarotCardReveal({ cards, revealed, onReveal }: {
                 whileTap={!isRevealed ? { scale: 0.97 } : {}}
               >
                 {/* Card back */}
-                <div className="absolute inset-0 rounded-xl flex items-center justify-center card-shadow"
+                <div className="absolute inset-0 rounded-xl flex items-center justify-center"
                   style={{
                     backfaceVisibility: 'hidden',
-                    background: 'linear-gradient(135deg, var(--sol-navy), var(--warm-brown))',
+                    backgroundColor: 'var(--sol-navy)',
                     border: '1px solid rgba(255,255,255,0.15)',
                   }}>
                   <Sparkle size={28} weight="thin" color="rgba(255,255,255,0.4)" />
                 </div>
 
                 {/* Card face */}
-                <div className="absolute inset-0 rounded-xl overflow-hidden card-shadow"
+                <div className="absolute inset-0 rounded-xl overflow-hidden"
                   style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                   {img ? (
                     <Image src={img} alt={c.name} fill sizes="96px" className="object-cover"
@@ -190,7 +190,7 @@ function TarotCardReveal({ cards, revealed, onReveal }: {
 
 function DailyInsight({ loading, content }: { loading: boolean; content: string }) {
   return (
-    <div className="p-6 rounded-2xl" style={{
+    <div className="p-6" style={{
       backgroundColor: 'var(--sol-navy)'
     }}>
       <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">Today&apos;s Insight</p>
@@ -221,7 +221,7 @@ function TarotDailyInsight({ loading, content }: { loading: boolean; content: st
   const reading = !loading ? parseTarotReading(content) : null
 
   return (
-    <div className="p-6 rounded-2xl" style={{ backgroundColor: 'var(--sol-navy)' }}>
+    <div className="p-6" style={{ backgroundColor: 'var(--sol-navy)' }}>
       <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">Today&apos;s Insight</p>
       {loading ? (
         <div className="flex flex-col gap-2">
@@ -257,11 +257,11 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
     const r = results as { sun_sign?: string; moon_sign?: string; rising_sign?: string; summary?: string; chart?: NatalChart }
     return (
       <div className="flex flex-col gap-4">
-        <div className="p-6 rounded-2xl card-shadow" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+        <div className="p-6" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
           <div className="flex gap-3 mb-4">
             {[{ icon: <Sun size={20} weight="thin" />, l: 'Sun', v: r.sun_sign }, { icon: <Moon size={20} weight="thin" />, l: 'Moon', v: r.moon_sign }, { icon: <ArrowUp size={20} weight="thin" />, l: 'Rising', v: r.rising_sign }]
               .map(a => (
-                <div key={a.l} className="flex-1 text-center p-3 rounded-xl" style={{ backgroundColor: 'var(--parchment)' }}>
+                <div key={a.l} className="flex-1 text-center p-3" style={{ backgroundColor: 'var(--parchment)' }}>
                   <div className="mb-1 flex justify-center" style={{ color: 'var(--text-secondary)' }}>{a.icon}</div>
                   <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.l}</div>
                   <div className="text-sm font-normal" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>{a.v}</div>
@@ -273,7 +273,7 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
 
         {r.chart ? (
           <>
-            <div className="p-4 rounded-2xl card-shadow" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+            <div className="p-4" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
               <NatalChartWheel chart={r.chart} />
             </div>
             <div>
@@ -299,11 +299,11 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
       year_2026?: { year_animal?: string; year_element?: string; relationship?: string; relationship_quality?: string; reading?: string }
     }
     const yearQuality = r.year_2026?.relationship_quality
-    const yearColor = yearQuality === 'supportive' ? 'var(--sage)' : yearQuality === 'challenging' ? 'var(--terracotta)' : 'var(--text-muted)'
-    const yearBg = yearQuality === 'supportive' ? 'rgba(95,123,78,0.1)' : yearQuality === 'challenging' ? 'rgba(238,108,90,0.1)' : 'var(--parchment)'
+    const yearColor = yearQuality === 'supportive' ? 'var(--status-supportive)' : yearQuality === 'challenging' ? 'var(--status-challenging)' : 'var(--status-neutral)'
+    const yearBg = yearQuality === 'supportive' ? 'color-mix(in srgb, var(--status-supportive) 10%, var(--warm-white))' : yearQuality === 'challenging' ? 'color-mix(in srgb, var(--status-challenging) 10%, var(--warm-white))' : 'var(--parchment)'
     return (
       <div className="flex flex-col gap-3">
-        <div className="p-5 rounded-2xl card-shadow text-center" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+        <div className="p-5 text-center" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
           <div className="mb-2 flex justify-center" style={{ color: 'var(--text-secondary)' }}><YinYang size={36} weight="thin" /></div>
           <h3 className="text-xl font-semibold mb-0.5" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
             {r.element} {r.animal}
@@ -313,12 +313,12 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
           {r.summary && <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{r.summary}</p>}
         </div>
         {r.strengths && r.strengths.length > 0 && (
-          <div className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
-            <p className="text-xs font-medium uppercase mb-2" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--sage)' }}>Your Gifts</p>
+          <div className="p-4" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+            <p className="text-xs font-medium uppercase mb-2" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-primary)' }}>Your Gifts</p>
             <div className="flex flex-col gap-1.5">
               {r.strengths.slice(0, 3).map((s, i) => (
                 <div key={i} className="flex gap-2 items-start">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--sage)' }} />
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--text-primary)' }} />
                   <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{s}</p>
                 </div>
               ))}
@@ -326,7 +326,7 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
           </div>
         )}
         {r.year_2026?.reading && (
-          <div className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+          <div className="p-4" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
             <div className="flex items-center gap-2 mb-2">
               <p className="text-xs font-medium uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-muted)' }}>
                 2026 — {r.year_2026.year_element} {r.year_2026.year_animal}
@@ -347,11 +347,11 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
   if (factor === 'spirituality') {
     const r = results as { traditions?: string[]; themes?: string[]; summary?: string }
     return (
-      <div className="p-6 rounded-2xl card-shadow" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+      <div className="p-6" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
         <div className="flex flex-wrap gap-2 mb-4">
           {(r.traditions ?? []).map(t => (
             <span key={t} className="px-3 py-1 rounded-full text-sm font-medium"
-              style={{ backgroundColor: 'rgba(95,123,78,0.15)', color: 'var(--sage)' }}>{t}</span>
+              style={{ backgroundColor: 'var(--selected-bg)', color: 'var(--text-primary)' }}>{t}</span>
           ))}
         </div>
         {r.summary && <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{r.summary}</p>}
@@ -370,11 +370,11 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
   if (factor === 'values') {
     const r = results as { top_values?: string[]; summary?: string }
     return (
-      <div className="p-6 rounded-2xl card-shadow" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+      <div className="p-6" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
         <div className="flex flex-wrap gap-2 mb-4">
           {(r.top_values ?? []).map((v, i) => (
             <span key={v} className="px-3 py-1 rounded-full text-sm font-medium"
-              style={{ backgroundColor: i === 0 ? 'rgba(238,108,90,0.2)' : 'var(--parchment)', color: i === 0 ? 'var(--warm-brown)' : 'var(--text-secondary)' }}>
+              style={{ backgroundColor: i === 0 ? 'var(--selected-bg)' : 'var(--parchment)', color: i === 0 ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
               {v}
             </span>
           ))}
@@ -420,13 +420,13 @@ function IkigaiSnapshot({ results, userId }: { results: Record<string, unknown>;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="p-6 rounded-2xl card-shadow text-center" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+      <div className="p-6 text-center" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
         <p className="text-xs font-medium mb-3 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>Your Reason for Being</p>
         <p className="text-lg font-normal italic" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           &ldquo;{r.ikigai_statement}&rdquo;
         </p>
       </div>
-      <div className="p-4 rounded-2xl card-shadow" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+      <div className="p-4" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
         <IkigaiChart word={word} love={r.love} good_at={r.good_at} world_needs={r.world_needs} paid_for={r.paid_for} size={340} />
       </div>
     </div>

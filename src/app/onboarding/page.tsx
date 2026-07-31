@@ -85,7 +85,7 @@ export default function OnboardingPage() {
         placeholder="First name"
         value={firstName}
         onChange={e => setFirstName(e.target.value)}
-        className="w-full px-4 py-4 rounded-xl border text-xl outline-none"
+        className="w-full px-4 py-4 border text-xl outline-none"
         style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }}
         autoFocus
       />
@@ -117,7 +117,7 @@ export default function OnboardingPage() {
           placeholder="Your age"
           value={age}
           onChange={e => setAge(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border text-base outline-none"
+          className="w-full px-4 py-3 border text-base outline-none"
           style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }}
         />
       </div>
@@ -129,9 +129,9 @@ export default function OnboardingPage() {
             <button key={g} onClick={() => setGender(g)}
               className="px-3 py-2 rounded-full text-sm border transition-all"
               style={{
-                borderColor: gender === g ? 'var(--terracotta)' : 'var(--parchment)',
-                backgroundColor: gender === g ? 'var(--terracotta)' : 'var(--warm-white)',
-                color: gender === g ? 'white' : 'var(--text-secondary)',
+                borderColor: gender === g ? 'var(--selected-border)' : 'var(--parchment)',
+                backgroundColor: gender === g ? 'var(--cta-bg)' : 'var(--warm-white)',
+                color: gender === g ? 'var(--cta-text)' : 'var(--text-secondary)',
               }}>
               {g}
             </button>
@@ -143,7 +143,7 @@ export default function OnboardingPage() {
             placeholder="Describe your gender"
             value={customGender}
             onChange={e => setCustomGender(e.target.value)}
-            className="mt-3 w-full px-4 py-3 rounded-xl border text-base outline-none"
+            className="mt-3 w-full px-4 py-3 border text-base outline-none"
             style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }}
           />
         )}
@@ -176,10 +176,10 @@ export default function OnboardingPage() {
             <motion.button
               key={f}
               onClick={() => toggleFactor(f)}
-              className="flex items-center gap-4 p-4 rounded-2xl border text-left transition-all"
+              className="flex items-center gap-4 p-4 border text-left transition-all"
               style={{
-                borderColor: selected ? 'var(--terracotta)' : 'var(--parchment)',
-                backgroundColor: selected ? 'rgba(196,113,74,0.08)' : 'var(--warm-white)',
+                borderColor: selected ? 'var(--selected-border)' : 'var(--parchment)',
+                backgroundColor: selected ? 'var(--selected-bg)' : 'var(--warm-white)',
               }}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
@@ -189,7 +189,7 @@ export default function OnboardingPage() {
                 <div className="font-medium text-base" style={{ color: 'var(--text-primary)' }}>{meta.label}</div>
                 <div className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>{meta.description}</div>
               </div>
-              {selected && <span className="ml-auto" style={{ color: 'var(--terracotta)' }}><Check size={18} weight="regular" /></span>}
+              {selected && <span className="ml-auto" style={{ color: 'var(--text-primary)' }}><Check size={18} weight="regular" /></span>}
             </motion.button>
           )
         })}
@@ -214,7 +214,7 @@ export default function OnboardingPage() {
         <div className="flex gap-2 justify-center mb-10">
           {[0, 1, 2].map(i => (
             <div key={i} className="w-2 h-2 rounded-full transition-all"
-              style={{ backgroundColor: i === step ? 'var(--terracotta)' : 'var(--parchment)', width: i === step ? '24px' : '8px' }} />
+              style={{ backgroundColor: i === step ? 'var(--text-primary)' : 'var(--parchment)', width: i === step ? '24px' : '8px' }} />
           ))}
         </div>
 
@@ -239,7 +239,7 @@ function NavButtons({
     <div className="flex gap-3 mt-2">
       {showBack && onBack && (
         <button onClick={onBack}
-          className="px-6 py-3 rounded-xl border font-light text-base transition-all"
+          className="px-6 py-3 border font-light text-base transition-all"
           style={{ borderColor: 'var(--parchment)', color: 'var(--text-muted)' }}>
           Back
         </button>
@@ -247,8 +247,8 @@ function NavButtons({
       <motion.button
         onClick={onNext}
         disabled={nextDisabled}
-        className="flex-1 py-3 rounded-xl text-white font-medium text-base disabled:opacity-50"
-        style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
+        className="flex-1 py-3 font-medium text-base disabled:opacity-50"
+        style={{ backgroundColor: 'var(--cta-bg)', color: 'var(--cta-text)' }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >

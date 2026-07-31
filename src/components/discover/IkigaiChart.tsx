@@ -14,10 +14,10 @@ const PILL_CLEAR_BOTTOM = 295
 // from the right) so titles and words stay left/right-aligned within their own circle and never
 // spill toward the opposite side.
 const CIRCLES = [
-  { key: 'love', lines: ['WHAT', 'YOU', 'LOVE'], color: 'var(--terracotta)', dx: -1, dy: -1, edge: 50, labelY: 20, wordsY: 20 },
-  { key: 'good_at', lines: ['WHAT', "YOU'RE", 'GOOD', 'AT'], color: 'var(--sage)', dx: 1, dy: -1, edge: 50, labelY: 20, wordsY: 20 },
-  { key: 'world_needs', lines: ['WHAT', 'THE', 'WORLD', 'NEEDS'], color: 'var(--forest)', dx: -1, dy: 1, edge: 50, labelY: 200, wordsY: PILL_CLEAR_BOTTOM + 20 },
-  { key: 'paid_for', lines: ['WHAT', 'YOU', 'CAN', 'BE', 'PAID', 'FOR'], color: 'var(--warm-brown-light)', dx: 1, dy: 1, edge: 50, labelY: 200, wordsY: PILL_CLEAR_BOTTOM + 20 },
+  { key: 'love', lines: ['WHAT', 'YOU', 'LOVE'], color: 'var(--chart-love)', dx: -1, dy: -1, edge: 50, labelY: 20, wordsY: 20 },
+  { key: 'good_at', lines: ['WHAT', "YOU'RE", 'GOOD', 'AT'], color: 'var(--chart-good-at)', dx: 1, dy: -1, edge: 50, labelY: 20, wordsY: 20 },
+  { key: 'world_needs', lines: ['WHAT', 'THE', 'WORLD', 'NEEDS'], color: 'var(--chart-world-needs)', dx: -1, dy: 1, edge: 50, labelY: 200, wordsY: PILL_CLEAR_BOTTOM + 20 },
+  { key: 'paid_for', lines: ['WHAT', 'YOU', 'CAN', 'BE', 'PAID', 'FOR'], color: 'var(--chart-paid-for)', dx: 1, dy: 1, edge: 50, labelY: 200, wordsY: PILL_CLEAR_BOTTOM + 20 },
 ]
 
 // Scatter offsets for up to 4 words, growing downward from each circle's own word-zone start —

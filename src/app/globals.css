@@ -1,48 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  /* Nagare Sol — primitive tokens */
-  --sol-paper:      #FBF6EE;
-  --sol-sand:       #F4EBDD;
-  --sol-sand-deep:  #ECE0CE;
-  --sol-greige:     #E4D9C6;
-  --sol-clay:       #C68A63;
-  --sol-ink:        #23252C;
-  --sol-navy:       #202A43;
-  --sol-ink-muted:  #79736A;
-  --sol-ink-faint:  #A2937D;
-  --sol-coral-100:  #FADED7;
-  --sol-coral-300:  #F7B3A6;
-  --sol-coral-500:  #EE6C5A;
-  --sol-coral-700:  #DA5442;
-  --sol-teal-100:   #D2E0E4;
-  --sol-teal-300:   #6E9AA8;
-  --sol-teal-500:   #2F5C6E;
-  --sol-teal-700:   #234653;
-  --sol-moss-100:   #DFE6D3;
-  --sol-moss-300:   #A6B694;
-  --sol-moss-500:   #5F7B4E;
-  --sol-moss-700:   #3E5537;
+  /* I AM identity system — primitive tokens */
+  --im-paper:    #EFE7DE;
+  --im-raised:   #FBF7F2;
+  --im-night:    #1E2239;
+  --im-ink:      #17140F;
+  --im-ink-muted: #6B6154;
+  --im-ochre:    #C9B08A;
+  --im-hairline: #DCD0C1;
 
-  /* App semantic variables — mapped to Nagare Sol */
-  --cream:             #F4EBDD;   /* sol-sand — main background */
-  --warm-white:        #FBF6EE;   /* sol-paper — card surfaces */
-  --parchment:         #E4D9C6;   /* sol-greige — borders, dividers */
-  --terracotta:        #EE6C5A;   /* sol-coral-500 — primary action */
-  --terracotta-light:  #F7B3A6;   /* sol-coral-300 */
-  --rust:              #DA5442;   /* sol-coral-700 — hover/pressed */
-  --sage:              #5F7B4E;   /* sol-moss-500 — accent green */
-  --sage-light:        #A6B694;   /* sol-moss-300 */
-  --warm-brown:        #202A43;   /* sol-navy — secondary dark */
-  --warm-brown-light:  #2F5C6E;   /* sol-teal-500 */
-  --gold:              #EE6C5A;   /* maps to coral (persimmon is the accent) */
-  --gold-light:        #F7B3A6;   /* sol-coral-300 */
-  --forest:            #202A43;   /* sol-navy */
-  --moss:              #5F7B4E;   /* sol-moss-500 */
+  /* App semantic variables — names kept stable, repointed to the new system */
+  --cream:             var(--im-paper);    /* main background */
+  --warm-white:        var(--im-raised);   /* card surfaces */
+  --parchment:         var(--im-hairline); /* borders, dividers */
+  --sol-navy:           var(--im-night);    /* dark ground — daily message card, icon watermarks */
 
-  --text-primary:   #23252C;   /* sol-ink */
-  --text-secondary: #79736A;   /* sol-ink-muted */
-  --text-muted:     #A2937D;   /* sol-ink-faint */
+  --text-primary:   var(--im-ink);
+  --text-secondary: var(--im-ink-muted);
+  --text-muted:     color-mix(in srgb, var(--im-ink-muted) 70%, var(--im-paper));
+
+  /* Primary action — the brand system has no light-surface accent (ochre is
+     dark-surface-only), so CTAs are solid ink instead of a coral gradient. */
+  --cta-bg:   var(--im-ink);
+  --cta-text: var(--im-raised);
+
+  /* Selected-option state (choice pills on light surfaces) — ink, not ochre. */
+  --selected-border: var(--im-ink);
+  --selected-bg:     color-mix(in srgb, var(--im-ink) 6%, var(--im-raised));
+
+  /* Functional (non-decorative) color coding — kept distinct from the ochre
+     accent and from each other on purpose. Do not repoint these to --im-ochre. */
+  --chart-love:         #B97A5A; /* Ikigai circle: what you love */
+  --chart-good-at:      #6E8F63; /* Ikigai circle: what you're good at */
+  --chart-world-needs:  #5C6B8A; /* Ikigai circle: what the world needs */
+  --chart-paid-for:     #A98B4F; /* Ikigai circle: what you can be paid for */
+
+  --aspect-conjunction: #A98B4F;
+  --aspect-opposition:  #7A6A8A;
+  --aspect-square:      #B15E4E;
+  --aspect-trine:       #6E8F63;
+  --aspect-sextile:     #8FAE84;
+
+  --status-supportive:  #6E8F63;
+  --status-challenging: #B15E4E;
+  --status-neutral:     var(--im-ink-muted);
+
+  /* Legacy aliases kept only for any stray call sites — prefer the tokens above. */
+  --terracotta:        var(--cta-bg);
+  --terracotta-light:  var(--im-ochre);
+  --rust:              var(--cta-bg);
+  --sage:              var(--status-supportive);
+  --sage-light:        var(--aspect-sextile);
+  --warm-brown:        var(--im-night);
+  --warm-brown-light:  var(--chart-paid-for);
+  --gold:              var(--aspect-conjunction);
+  --gold-light:         var(--im-ochre);
+  --forest:            var(--aspect-opposition);
+  --moss:              var(--status-supportive);
 }
 
 * { box-sizing: border-box; }
@@ -57,31 +72,9 @@ body {
   50% { transform: translateY(-6px); }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
 .float { animation: float 4s ease-in-out infinite; }
-
-.shimmer-text {
-  background: linear-gradient(90deg, #EE6C5A 25%, #F7B3A6 50%, #EE6C5A 75%);
-  background-size: 200% auto;
-  animation: shimmer 2.5s linear infinite;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.card-shadow {
-  box-shadow: 0 1px 2px rgba(32, 42, 67, 0.12);
-}
-
-.card-shadow-hover:hover {
-  box-shadow: 0 16px 30px -20px rgba(32, 42, 67, 0.5);
-}

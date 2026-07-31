@@ -19,7 +19,7 @@ export default function RotatingBackground() {
   }, [])
 
   return (
-    <div className="absolute inset-0 overflow-hidden rounded-3xl" aria-hidden="true">
+    <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
       <AnimatePresence>
         <motion.video
           key={VIDEOS[index].src}

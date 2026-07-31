@@ -5,13 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Sun, Moon, ArrowUp, Sparkle, ArrowRight, CaretDown } from '@phosphor-icons/react'
+import { Sun, Moon, ArrowUp, ArrowRight, CaretDown } from '@phosphor-icons/react'
 import { FactorType, FACTOR_META, IdentityFactor, UserProfile } from '@/lib/types'
 import { getTarotCardImage } from '@/lib/tarotImages'
 import { getZodiacAnimalIcon, getZodiacElementIcon } from '@/lib/zodiacIcons'
 import FactorIcon from '@/components/FactorIcon'
 import RotatingBackground from '@/components/RotatingBackground'
 import IkigaiChart from '@/components/discover/IkigaiChart'
+import Logo from '@/components/Logo'
 
 interface Props {
   profile: UserProfile
@@ -59,11 +60,14 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
       {/* Header */}
       <header className="px-6 py-5 flex items-center justify-between border-b"
         style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)' }}>
-        <h1 className="text-2xl font-normal tracking-wider" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
-          I AM
-        </h1>
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+          <Logo size={40} variant="lines" />
+          <h1 className="text-xl font-normal" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)', letterSpacing: '0.24em', textIndent: '0.24em' }}>
+            I AM
+          </h1>
+        </div>
         <div className="flex items-center gap-4">
-          <AccountMenu firstName={profile.first_name} onSignOut={handleSignOut} />
+          <AccountMenu firstName={profile.first_name} factors={factors} userId={userId} onSignOut={handleSignOut} />
         </div>
       </header>
 
@@ -71,13 +75,13 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
 
         {/* Daily message */}
         <motion.section
-          className="rounded-3xl p-8 relative overflow-hidden"
+          className="p-8 relative overflow-hidden"
           style={{ backgroundColor: 'var(--sol-navy)' }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="absolute top-4 right-6 opacity-20 text-white"><Sparkle size={56} weight="thin" /></div>
+          <div className="absolute top-4 right-6 opacity-60" style={{ color: 'var(--im-ochre)' }}><Logo size={56} variant="lines" /></div>
           <p className="text-sm font-light text-white opacity-70 mb-4">{today}</p>
 
           {loadingMessage ? (
@@ -102,7 +106,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
         </motion.section>
 
         {/* Identity factor cards */}
-        <section className="relative overflow-hidden rounded-3xl p-4 sm:p-6">
+        <section className="relative overflow-hidden p-4 sm:p-6">
           <RotatingBackground />
 
           <div className="relative">
@@ -123,11 +127,12 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
                 >
                   <Link href={`/discover/${factor.factor_type}`}>
                     <motion.div
-                      className="rounded-2xl p-6 cursor-pointer transition-all card-shadow card-shadow-hover"
+                      className="p-6 cursor-pointer transition-all"
                       style={{
                         backgroundColor: 'var(--warm-white)',
+                        border: '1px solid var(--parchment)',
                       }}
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -136,7 +141,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
                         </span>
                         {completed && (
                           <span className="text-xs px-2 py-1 rounded-full font-medium"
-                            style={{ backgroundColor: 'rgba(238,108,90,0.15)', color: 'var(--gold)' }}>
+                            style={{ backgroundColor: 'var(--selected-bg)', color: 'var(--text-primary)' }}>
                             Active
                           </span>
                         )}
@@ -160,7 +165,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
                         </p>
                       )}
 
-                      <div className="mt-4 text-sm font-medium" style={{ color: 'var(--terracotta)' }}>
+                      <div className="mt-4 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                         <span className="flex items-center gap-1">{completed ? 'View today' : 'Begin discovery'} <ArrowRight size={14} weight="regular" /></span>
                       </div>
                     </motion.div>
@@ -182,13 +187,24 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
   )
 }
 
-function AccountMenu({ firstName, onSignOut }: { firstName: string; onSignOut: () => void }) {
+function AccountMenu({ firstName, factors, userId, onSignOut }: {
+  firstName: string
+  factors: IdentityFactor[]
+  userId: string
+  onSignOut: () => void
+}) {
   const router = useRouter()
+  const supabase = createClient()
   const [open, setOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [addingFactor, setAddingFactor] = useState<FactorType | null>(null)
+  const [addError, setAddError] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const missingFactors = (Object.keys(FACTOR_META) as FactorType[])
+    .filter(f => !factors.some(row => row.factor_type === f))
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -212,6 +228,25 @@ function AccountMenu({ firstName, onSignOut }: { firstName: string; onSignOut: (
     }
   }
 
+  async function handleAddFactor(factor: FactorType) {
+    setAddingFactor(factor)
+    setAddError('')
+    const { error } = await supabase.from('identity_factors').insert({
+      user_id: userId,
+      factor_type: factor,
+      discovery_completed: false,
+      discovery_data: {},
+      results: {},
+    })
+    if (error) {
+      setAddingFactor(null)
+      setAddError('Could not add that factor — please try again.')
+      return
+    }
+    setOpen(false)
+    router.push(`/discover/${factor}`)
+  }
+
   return (
     <>
       <div className="relative" ref={menuRef}>
@@ -226,8 +261,24 @@ function AccountMenu({ firstName, onSignOut }: { firstName: string; onSignOut: (
             <motion.div
               initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 mt-2 w-44 rounded-xl overflow-hidden card-shadow z-50"
+              className="absolute right-0 mt-2 w-64 overflow-hidden z-50"
               style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+              {missingFactors.length > 0 && (
+                <div className="border-b" style={{ borderColor: 'var(--parchment)' }}>
+                  <p className="px-4 pt-3 pb-1 text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                    Add a factor
+                  </p>
+                  {missingFactors.map(f => (
+                    <button key={f} onClick={() => handleAddFactor(f)} disabled={addingFactor !== null}
+                      className="w-full flex items-center gap-3 text-left px-4 py-2.5 text-sm font-light transition-colors hover:bg-black/5 disabled:opacity-50"
+                      style={{ color: 'var(--text-primary)' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}><FactorIcon factor={f} size={18} weight="thin" /></span>
+                      {FACTOR_META[f].label}
+                    </button>
+                  ))}
+                  {addError && <p className="px-4 pb-2 text-xs text-red-600">{addError}</p>}
+                </div>
+              )}
               <button onClick={() => { setOpen(false); onSignOut() }}
                 className="w-full text-left px-4 py-3 text-sm font-light transition-colors hover:bg-black/5"
                 style={{ color: 'var(--text-primary)' }}>
@@ -251,8 +302,8 @@ function AccountMenu({ firstName, onSignOut }: { firstName: string; onSignOut: (
             onClick={() => !deleting && setConfirmDelete(false)}>
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-sm p-6 rounded-2xl card-shadow"
-              style={{ backgroundColor: 'var(--warm-white)' }}
+              className="w-full max-w-sm p-6"
+              style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}
               onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-normal mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
                 Delete your account?
@@ -263,12 +314,12 @@ function AccountMenu({ firstName, onSignOut }: { firstName: string; onSignOut: (
               {deleteError && <p className="text-sm text-red-600 mb-4">{deleteError}</p>}
               <div className="flex gap-3">
                 <button onClick={() => setConfirmDelete(false)} disabled={deleting}
-                  className="flex-1 py-3 rounded-xl text-sm font-medium disabled:opacity-60"
+                  className="flex-1 py-3 text-sm font-medium disabled:opacity-60"
                   style={{ backgroundColor: 'var(--parchment)', color: 'var(--text-secondary)' }}>
                   Cancel
                 </button>
                 <button onClick={handleDeleteAccount} disabled={deleting}
-                  className="flex-1 py-3 rounded-xl text-sm font-medium text-white bg-red-600 disabled:opacity-60">
+                  className="flex-1 py-3 text-sm font-medium text-white bg-red-600 disabled:opacity-60">
                   {deleting ? 'Deleting…' : 'Delete'}
                 </button>
               </div>

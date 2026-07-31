@@ -107,14 +107,14 @@ export default function EasternAstrologyFlow({ profile, userId, onComplete }: Pr
         <label className="text-sm font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Birth Year</label>
         <input type="number" min="1920" max={currentYear} placeholder={`e.g. ${currentYear - 30}`}
           value={birthYear} onChange={e => setBirthYear(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border outline-none text-base"
+          className="w-full px-4 py-3 border outline-none text-base"
           style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }} />
       </div>
 
       <div>
         <label className="text-sm font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Birth Month</label>
         <select value={birthMonth} onChange={e => setBirthMonth(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border outline-none text-base"
+          className="w-full px-4 py-3 border outline-none text-base"
           style={{ borderColor: 'var(--parchment)', backgroundColor: 'var(--warm-white)', color: 'var(--text-primary)' }}>
           <option value="">Select month</option>
           {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
@@ -141,14 +141,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function EasternResults({ results, onContinue }: { results: EasternResults; onContinue: () => void }) {
   const yearQuality = results.year_2026?.relationship_quality ?? 'neutral'
   const yearColor = yearQuality === 'supportive'
-    ? 'var(--sage)'
+    ? 'var(--status-supportive)'
     : yearQuality === 'challenging'
-    ? 'var(--terracotta)'
-    : 'var(--text-muted)'
+    ? 'var(--status-challenging)'
+    : 'var(--status-neutral)'
   const yearBg = yearQuality === 'supportive'
-    ? 'rgba(95,123,78,0.1)'
+    ? 'color-mix(in srgb, var(--status-supportive) 10%, var(--warm-white))'
     : yearQuality === 'challenging'
-    ? 'rgba(238,108,90,0.1)'
+    ? 'color-mix(in srgb, var(--status-challenging) 10%, var(--warm-white))'
     : 'var(--parchment)'
 
   return (
@@ -171,7 +171,7 @@ function EasternResults({ results, onContinue }: { results: EasternResults; onCo
       </div>
 
       {/* Summary */}
-      <div className="p-5 rounded-2xl" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+      <div className="p-5" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
         <p className="text-sm leading-relaxed font-light" style={{ color: 'var(--text-secondary)' }}>{results.summary}</p>
       </div>
 
@@ -179,23 +179,23 @@ function EasternResults({ results, onContinue }: { results: EasternResults; onCo
       {results.personality && (
         <div className="flex flex-col gap-3">
           <SectionLabel>Who You Are</SectionLabel>
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+          <div className="p-5" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
             <p className="text-sm leading-relaxed font-light mb-4" style={{ color: 'var(--text-secondary)' }}>
               {results.personality.core}
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--cream)' }}>
+              <div className="p-4" style={{ backgroundColor: 'var(--cream)' }}>
                 <p className="text-xs font-medium mb-1.5 uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-muted)' }}>In Love</p>
                 <p className="text-sm font-light leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{results.personality.in_relationships}</p>
               </div>
-              <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--cream)' }}>
+              <div className="p-4" style={{ backgroundColor: 'var(--cream)' }}>
                 <p className="text-xs font-medium mb-1.5 uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-muted)' }}>At Work</p>
                 <p className="text-sm font-light leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{results.personality.at_work}</p>
               </div>
             </div>
             {results.personality.under_pressure && (
-              <div className="mt-3 p-4 rounded-xl" style={{ backgroundColor: 'rgba(238,108,90,0.06)', borderLeft: '3px solid var(--terracotta)' }}>
-                <p className="text-xs font-medium mb-1.5 uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--terracotta)' }}>Under Pressure</p>
+              <div className="mt-3 p-4" style={{ backgroundColor: 'var(--selected-bg)', borderLeft: '3px solid var(--text-primary)' }}>
+                <p className="text-xs font-medium mb-1.5 uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-primary)' }}>Under Pressure</p>
                 <p className="text-sm font-light leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{results.personality.under_pressure}</p>
               </div>
             )}
@@ -209,18 +209,18 @@ function EasternResults({ results, onContinue }: { results: EasternResults; onCo
           <SectionLabel>Strengths &amp; Shadows</SectionLabel>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {results.strengths?.length > 0 && (
-              <div className="p-5 rounded-2xl flex flex-col gap-2" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
-                <p className="text-xs font-medium uppercase mb-1" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--sage)' }}>Gifts</p>
+              <div className="p-5 flex flex-col gap-2" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+                <p className="text-xs font-medium uppercase mb-1" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-primary)' }}>Gifts</p>
                 {results.strengths.map((s, i) => (
                   <div key={i} className="flex gap-2.5 items-start">
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--sage)' }} />
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--text-primary)' }} />
                     <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{s}</p>
                   </div>
                 ))}
               </div>
             )}
             {results.shadows?.length > 0 && (
-              <div className="p-5 rounded-2xl flex flex-col gap-2" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+              <div className="p-5 flex flex-col gap-2" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
                 <p className="text-xs font-medium uppercase mb-1" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-muted)' }}>Growing Edges</p>
                 {results.shadows.map((s, i) => (
                   <div key={i} className="flex gap-2.5 items-start">
@@ -238,7 +238,7 @@ function EasternResults({ results, onContinue }: { results: EasternResults; onCo
       {results.element_nature && (
         <div className="flex flex-col gap-3">
           <SectionLabel>The {results.element} Nature</SectionLabel>
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+          <div className="p-5" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
             <p className="text-sm leading-relaxed font-light mb-3" style={{ color: 'var(--text-secondary)' }}>
               {results.element_nature.essence}
             </p>
@@ -246,11 +246,11 @@ function EasternResults({ results, onContinue }: { results: EasternResults; onCo
               {results.element_nature.expression}
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(95,123,78,0.08)' }}>
-                <p className="text-xs font-medium mb-1 uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--sage)' }}>Nourished by</p>
+              <div className="p-3" style={{ backgroundColor: 'var(--selected-bg)' }}>
+                <p className="text-xs font-medium mb-1 uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-primary)' }}>Nourished by</p>
                 <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{results.element_nature.nourished_by}</p>
               </div>
-              <div className="p-3 rounded-xl" style={{ backgroundColor: 'var(--cream)' }}>
+              <div className="p-3" style={{ backgroundColor: 'var(--cream)' }}>
                 <p className="text-xs font-medium mb-1 uppercase" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.15em', color: 'var(--text-muted)' }}>Depleted by</p>
                 <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>{results.element_nature.depleted_by}</p>
               </div>
@@ -263,7 +263,7 @@ function EasternResults({ results, onContinue }: { results: EasternResults; onCo
       {results.year_2026 && (
         <div className="flex flex-col gap-3">
           <SectionLabel>2026 — Year of the {results.year_2026.year_element} {results.year_2026.year_animal}</SectionLabel>
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+          <div className="p-5" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
             {results.year_2026.relationship && (
               <span className="inline-block text-xs font-medium px-3 py-1 rounded-full mb-3 capitalize"
                 style={{ backgroundColor: yearBg, color: yearColor, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
@@ -280,9 +280,9 @@ function EasternResults({ results, onContinue }: { results: EasternResults; onCo
       {/* CTA */}
       <motion.button
         onClick={onContinue}
-        className="w-full py-4 rounded-xl text-white font-medium text-base"
-        style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
-        whileHover={{ scale: 1.02 }}
+        className="w-full py-4 font-medium text-base"
+        style={{ backgroundColor: 'var(--cta-bg)', color: 'var(--cta-text)' }}
+        whileHover={{ opacity: 0.85 }}
         whileTap={{ scale: 0.98 }}>
         <span className="flex items-center justify-center gap-2">
           <ArrowLeft size={16} weight="regular" /> Return to Dashboard

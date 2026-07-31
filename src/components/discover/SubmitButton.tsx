@@ -14,9 +14,9 @@ export default function SubmitButton({ onClick, loading, disabled, children }: P
     <motion.button
       onClick={onClick}
       disabled={disabled || loading}
-      className="w-full py-4 rounded-xl text-white font-medium text-base disabled:opacity-50 mt-2"
-      style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--rust))' }}
-      whileHover={{ scale: 1.02 }}
+      className="w-full py-4 font-medium text-base disabled:opacity-50 mt-2"
+      style={{ backgroundColor: 'var(--cta-bg)', color: 'var(--cta-text)' }}
+      whileHover={{ opacity: 0.85 }}
       whileTap={{ scale: 0.98 }}
     >
       {loading ? (
