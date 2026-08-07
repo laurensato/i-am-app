@@ -23,6 +23,7 @@ export interface IdentityFactor {
   discovery_completed: boolean
   discovery_data: Record<string, unknown>
   results: FactorResults
+  is_active: boolean
   created_at: string
 }
 

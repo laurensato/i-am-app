@@ -17,6 +17,7 @@ create table public.identity_factors (
   discovery_completed boolean default false,
   discovery_data jsonb default '{}',
   results jsonb default '{}',
+  is_active boolean not null default true,
   created_at timestamptz default now(),
   unique(user_id, factor_type)
 );

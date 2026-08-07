@@ -52,7 +52,8 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
     router.refresh()
   }
 
-  const completedFactors = factors.filter(f => f.discovery_completed)
+  const activeFactors = factors.filter(f => f.is_active)
+  const completedFactors = activeFactors.filter(f => f.discovery_completed)
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
@@ -115,7 +116,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
           </h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {factors.map((factor, i) => {
+            {activeFactors.map((factor, i) => {
               const meta = FACTOR_META[factor.factor_type as FactorType]
               const completed = factor.discovery_completed
               return (
@@ -199,12 +200,9 @@ function AccountMenu({ firstName, factors, userId, onSignOut }: {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const [addingFactor, setAddingFactor] = useState<FactorType | null>(null)
-  const [addError, setAddError] = useState('')
+  const [togglingFactor, setTogglingFactor] = useState<FactorType | null>(null)
+  const [toggleError, setToggleError] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
-
-  const missingFactors = (Object.keys(FACTOR_META) as FactorType[])
-    .filter(f => !factors.some(row => row.factor_type === f))
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -228,23 +226,27 @@ function AccountMenu({ firstName, factors, userId, onSignOut }: {
     }
   }
 
-  async function handleAddFactor(factor: FactorType) {
-    setAddingFactor(factor)
-    setAddError('')
-    const { error } = await supabase.from('identity_factors').insert({
-      user_id: userId,
-      factor_type: factor,
-      discovery_completed: false,
-      discovery_data: {},
-      results: {},
-    })
+  async function handleToggleFactor(factor: FactorType, row: IdentityFactor | undefined) {
+    setTogglingFactor(factor)
+    setToggleError('')
+    const { error } = row
+      ? await supabase.from('identity_factors')
+        .update({ is_active: !row.is_active })
+        .eq('user_id', userId).eq('factor_type', factor)
+      : await supabase.from('identity_factors').insert({
+        user_id: userId,
+        factor_type: factor,
+        discovery_completed: false,
+        discovery_data: {},
+        results: {},
+        is_active: true,
+      })
+    setTogglingFactor(null)
     if (error) {
-      setAddingFactor(null)
-      setAddError('Could not add that factor — please try again.')
+      setToggleError('Could not update that factor — please try again.')
       return
     }
-    setOpen(false)
-    router.push(`/discover/${factor}`)
+    router.refresh()
   }
 
   return (
@@ -263,22 +265,35 @@ function AccountMenu({ firstName, factors, userId, onSignOut }: {
               transition={{ duration: 0.15 }}
               className="absolute right-0 mt-2 w-64 overflow-hidden z-50"
               style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
-              {missingFactors.length > 0 && (
-                <div className="border-b" style={{ borderColor: 'var(--parchment)' }}>
-                  <p className="px-4 pt-3 pb-1 text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                    Add a factor
-                  </p>
-                  {missingFactors.map(f => (
-                    <button key={f} onClick={() => handleAddFactor(f)} disabled={addingFactor !== null}
-                      className="w-full flex items-center gap-3 text-left px-4 py-2.5 text-sm font-light transition-colors hover:bg-black/5 disabled:opacity-50"
+              <div className="border-b" style={{ borderColor: 'var(--parchment)' }}>
+                <p className="px-4 pt-3 pb-1 text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                  Factors
+                </p>
+                {(Object.keys(FACTOR_META) as FactorType[]).map(f => {
+                  const row = factors.find(r => r.factor_type === f)
+                  const isOn = row ? row.is_active : false
+                  return (
+                    <button key={f} role="switch" aria-checked={isOn}
+                      onClick={() => handleToggleFactor(f, row)} disabled={togglingFactor !== null}
+                      className="w-full flex items-center justify-between gap-3 text-left px-4 py-2.5 text-sm font-light transition-colors hover:bg-black/5 disabled:opacity-50"
                       style={{ color: 'var(--text-primary)' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}><FactorIcon factor={f} size={18} weight="thin" /></span>
-                      {FACTOR_META[f].label}
+                      <span className="flex items-center gap-3">
+                        <span style={{ color: 'var(--text-secondary)' }}><FactorIcon factor={f} size={18} weight="thin" /></span>
+                        {FACTOR_META[f].label}
+                      </span>
+                      <span
+                        className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
+                        style={{ backgroundColor: isOn ? 'var(--text-primary)' : 'var(--parchment)' }}>
+                        <span
+                          className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
+                          style={{ transform: isOn ? 'translateX(18px)' : 'translateX(3px)' }}
+                        />
+                      </span>
                     </button>
-                  ))}
-                  {addError && <p className="px-4 pb-2 text-xs text-red-600">{addError}</p>}
-                </div>
-              )}
+                  )
+                })}
+                {toggleError && <p className="px-4 pb-2 text-xs text-red-600">{toggleError}</p>}
+              </div>
               <button onClick={() => { setOpen(false); onSignOut() }}
                 className="w-full text-left px-4 py-3 text-sm font-light transition-colors hover:bg-black/5"
                 style={{ color: 'var(--text-primary)' }}>

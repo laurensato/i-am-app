@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
     .select('*')
     .eq('user_id', user.id)
     .eq('discovery_completed', true)
+    .eq('is_active', true)
 
   const profileSummary = profile
     ? `Name: ${profile.first_name}, Age: ${profile.age}, Gender: ${profile.gender}`
