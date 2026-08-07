@@ -67,6 +67,10 @@ Choose a single word — one word only, no phrase — that captures or represent
   },
 }
 
+function formatCircleAnswers(entries: { question: string; answer: string }[] | undefined): string {
+  return (entries ?? []).map(e => `Q: ${e.question}\nA: ${e.answer}`).join('\n\n')
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -303,14 +307,25 @@ Return only the JSON, no markdown. Write all text values as plain prose — no a
 
     ikigai: `${personalization}
 
-You are a life coach specializing in ikigai and purpose. A person has reflected on the four circles of their ikigai.
+You are a life coach specializing in ikigai and purpose. A person has answered a set of guided questions for
+each of the four circles of their ikigai — questions designed to surface what they love, are good at, the
+world needs, and can be paid for through concrete memories, not by asking them to name these things directly.
 
-What they love: "${(data as Record<string, string>).love}"
-What they're good at: "${(data as Record<string, string>).good_at}"
-What the world needs: "${(data as Record<string, string>).world_needs}"
-What they can be paid for: "${(data as Record<string, string>).paid_for}"
+What they love — their answers:
+${formatCircleAnswers((data as Record<string, { question: string; answer: string }[]>).love)}
 
-Synthesize their ikigai into a meaningful statement and identify key elements from each circle.
+What they're good at — their answers:
+${formatCircleAnswers((data as Record<string, { question: string; answer: string }[]>).good_at)}
+
+What the world needs — their answers:
+${formatCircleAnswers((data as Record<string, { question: string; answer: string }[]>).world_needs)}
+
+What they can be paid for — their answers:
+${formatCircleAnswers((data as Record<string, { question: string; answer: string }[]>).paid_for)}
+
+Synthesize their ikigai into a meaningful statement and identify key elements from each circle — read between
+the lines of their specific answers to name what they love/are good at/etc, even though they never stated it
+as a label themselves.
 
 Return a JSON object:
 {

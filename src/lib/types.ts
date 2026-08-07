@@ -65,6 +65,7 @@ export interface IkigaiResults {
   world_needs: string[]
   paid_for: string[]
   ikigai_statement: string
+  essence?: string
 }
 
 export type FactorResults =
