@@ -10,6 +10,8 @@ import { getTarotCardImage } from '@/lib/tarotImages'
 import FactorIcon from '@/components/FactorIcon'
 import NatalChartWheel, { AspectsTable } from './NatalChart'
 import IkigaiChart from './IkigaiChart'
+import { parseWesternAstrologyReading as parseWesternAstrologyJson } from '@/lib/structuredReading'
+import BreathworkLoader, { InsightBreathworkCard, minBreathDelay } from './BreathworkLoader'
 
 type TarotCard = { name: string; position: string; reversed?: boolean }
 
@@ -55,18 +57,38 @@ export default function DailyView({ factor, factorRow, profile, userId }: Props)
     fetchDailyContent()
   }, [readyForReading])
 
-  async function fetchDailyContent() {
+  async function fetchDailyContent(forceRefresh = false) {
     setLoading(true)
-    try {
+    const breath = minBreathDelay()
+
+    const fetchContent = async (refresh = forceRefresh): Promise<string> => {
       const res = await fetch('/api/daily-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ factor, factorResults: factorRow.results, profile }),
+        body: JSON.stringify({
+          factor,
+          factorResults: factorRow.results,
+          profile,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ...(refresh ? { forceRefresh: true } : {}),
+        }),
       })
       if (!res.ok) throw new Error('Failed to load daily content')
       const data = await res.json()
-      setContent(data.factor_content ?? data.insight ?? '')
+      const text = data.factor_content ?? data.insight ?? ''
+
+      if (factor === 'western_astrology' && !refresh && !parseWesternAstrologyJson(text)) {
+        return fetchContent(true)
+      }
+      return text
+    }
+
+    try {
+      const text = await fetchContent()
+      await breath
+      setContent(text)
     } catch {
+      await breath
       setContent(getFallback(factor, results))
     }
     setLoading(false)
@@ -111,6 +133,8 @@ export default function DailyView({ factor, factorRow, profile, userId }: Props)
         </p>
       ) : isTarot ? (
         <TarotDailyInsight loading={loading} content={content} />
+      ) : factor === 'western_astrology' ? (
+        <WesternAstrologyDailyInsight loading={loading} content={content} />
       ) : (
         <DailyInsight loading={loading} content={content} />
       )}
@@ -189,54 +213,91 @@ function TarotCardReveal({ cards, revealed, onReveal }: {
 }
 
 function DailyInsight({ loading, content }: { loading: boolean; content: string }) {
+  if (loading) return <InsightBreathworkCard />
+
   return (
-    <div className="p-6" style={{
-      backgroundColor: 'var(--sol-navy)'
-    }}>
+    <div className="p-6" style={{ backgroundColor: 'var(--sol-navy)' }}>
       <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">Today&apos;s Insight</p>
-      {loading ? (
-        <div className="flex flex-col gap-2">
-          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-3/4" />
-          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-full" />
-          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-2/3" />
-        </div>
-      ) : (
-        <p className="text-white font-light leading-relaxed">{content}</p>
-      )}
+      <p className="text-white font-light leading-relaxed">{content}</p>
     </div>
   )
 }
 
-function parseTarotReading(content: string): { cards: { position: string; reflection: string }[]; summary: string } | null {
+type StructuredDailyReading = {
+  headline?: string
+  items: { label: string; reflection: string }[]
+  summary: string
+}
+
+function parseStructuredReading(
+  content: string,
+  itemsKey: 'cards' | 'aspects'
+): StructuredDailyReading | null {
+  if (itemsKey === 'aspects') {
+    const reading = parseWesternAstrologyJson(content)
+    if (!reading) return null
+    return { headline: reading.headline, items: reading.aspects, summary: reading.summary }
+  }
+
   try {
     const parsed = JSON.parse(content)
-    if (parsed?.summary && Array.isArray(parsed?.cards)) return parsed
+    const items = parsed?.[itemsKey]
+    if (parsed?.summary && Array.isArray(items)) {
+      return { headline: parsed.headline, items, summary: parsed.summary }
+    }
   } catch {
     // not JSON — fall through to raw-text rendering
   }
   return null
 }
 
-function TarotDailyInsight({ loading, content }: { loading: boolean; content: string }) {
-  const reading = !loading ? parseTarotReading(content) : null
+function parseTarotReading(content: string): StructuredDailyReading | null {
+  try {
+    const parsed = JSON.parse(content)
+    if (parsed?.summary && Array.isArray(parsed?.cards)) {
+      return {
+        items: parsed.cards.map((c: { position: string; reflection: string }) => ({
+          label: c.position,
+          reflection: c.reflection,
+        })),
+        summary: parsed.summary,
+      }
+    }
+  } catch {
+    // not JSON — fall through to raw-text rendering
+  }
+  return null
+}
+
+function StructuredDailyInsight({
+  loading,
+  content,
+  parse,
+}: {
+  loading: boolean
+  content: string
+  parse: (content: string) => StructuredDailyReading | null
+}) {
+  const reading = !loading ? parse(content) : null
+
+  if (loading) return <InsightBreathworkCard />
 
   return (
     <div className="p-6" style={{ backgroundColor: 'var(--sol-navy)' }}>
       <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">Today&apos;s Insight</p>
-      {loading ? (
-        <div className="flex flex-col gap-2">
-          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-3/4" />
-          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-full" />
-          <div className="h-3 rounded-full bg-white opacity-20 animate-pulse w-2/3" />
-        </div>
-      ) : reading ? (
+      {reading ? (
         <div className="flex flex-col gap-4">
+          {reading.headline && (
+            <p className="text-white font-normal leading-snug" style={{ fontFamily: 'var(--font-serif)' }}>
+              {reading.headline}
+            </p>
+          )}
           <ul className="flex flex-col gap-3">
-            {reading.cards.map(c => (
-              <li key={c.position} className="flex gap-2 items-start">
+            {reading.items.map(item => (
+              <li key={item.label} className="flex gap-2 items-start">
                 <span className="mt-2 w-1.5 h-1.5 rounded-full shrink-0 bg-white opacity-50" />
                 <p className="text-white font-light leading-relaxed">
-                  <span className="font-normal opacity-80">{c.position}:</span> {c.reflection}
+                  <span className="font-normal opacity-80">{item.label}:</span> {item.reflection}
                 </p>
               </li>
             ))}
@@ -248,6 +309,67 @@ function TarotDailyInsight({ loading, content }: { loading: boolean; content: st
       ) : (
         <p className="text-white font-light leading-relaxed">{content}</p>
       )}
+    </div>
+  )
+}
+
+function TarotDailyInsight({ loading, content }: { loading: boolean; content: string }) {
+  return <StructuredDailyInsight loading={loading} content={content} parse={parseTarotReading} />
+}
+
+function SkyEventsBox({ events }: { events: { title: string; timing: string; impact: string }[] }) {
+  return (
+    <div
+      className="p-5 rounded-xl border"
+      style={{ backgroundColor: 'var(--warm-white)', borderColor: 'var(--parchment)' }}
+    >
+      <p
+        className="text-xs mb-4 tracking-widest uppercase font-medium"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        On the Horizon
+      </p>
+      <div className="flex flex-col gap-4">
+        {events.map(event => (
+          <div
+            key={`${event.timing}:${event.title}`}
+            className="pb-4 last:pb-0 last:border-0 border-b"
+            style={{ borderColor: 'var(--parchment)' }}
+          >
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-2">
+              <p
+                className="text-base font-normal"
+                style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}
+              >
+                {event.title}
+              </p>
+              <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--terracotta)' }}>
+                {event.timing}
+              </span>
+            </div>
+            <p className="text-sm font-light leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              {event.impact}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function WesternAstrologyDailyInsight({ loading, content }: { loading: boolean; content: string }) {
+  if (loading) return <InsightBreathworkCard />
+
+  const reading = parseWesternAstrologyJson(content)
+
+  return (
+    <div className="flex flex-col gap-4">
+      {reading?.events && reading.events.length > 0 && <SkyEventsBox events={reading.events} />}
+      <StructuredDailyInsight
+        loading={false}
+        content={content}
+        parse={c => parseStructuredReading(c, 'aspects')}
+      />
     </div>
   )
 }
@@ -435,7 +557,12 @@ function IkigaiSnapshot({ results, userId }: { results: Record<string, unknown>;
 
 function getFallback(factor: FactorType, results: Record<string, unknown>): string {
   const snippets: Record<FactorType, string> = {
-    western_astrology: `Your chart holds the blueprint of your becoming. Today, let one of your signs guide you.`,
+    western_astrology: JSON.stringify({
+      headline: 'The sky is speaking through your chart today',
+      aspects: [{ label: 'Your natal chart', reflection: 'Your chart holds the blueprint of your becoming.' }],
+      summary: 'Today, let one of your signs guide you inward.',
+      events: [],
+    }),
     eastern_astrology: `The energy of your sign is with you today. Move in harmony with your nature.`,
     spirituality: `The traditions that resonate with you carry ancient wisdom. Let one thought from that well nourish you today.`,
     tarot: `Your cards spoke. Their message is still alive. What has unfolded since you drew them?`,

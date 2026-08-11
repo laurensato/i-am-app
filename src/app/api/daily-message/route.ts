@@ -3,10 +3,23 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { computeTransitingPlanets, computeTransitAspects, wholeSignAspect, NatalChart } from '@/lib/natalChart'
 import { drawTarotCards } from '@/lib/tarotDeck'
+import {
+  computeUpcomingAstrologicalEvents,
+  formatEventsForPrompt,
+  mergeWesternAstrologyEvents,
+  resolveTimeZone,
+} from '@/lib/astrologicalEvents'
+import { localDateKey, localDateLabel, localWeekday } from '@/lib/localDate'
+import { isWesternAstrologyReading, parseWesternAstrologyReading, type WesternAstrologyEvent } from '@/lib/structuredReading'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, dangerouslyAllowBrowser: true })
 
-type FactorSnapshots = Record<string, { content?: string; mantra?: string; cards?: string }>
+type SnapshotKind = 'content' | 'content_v2' | 'content_v3' | 'content_v4' | 'content_v5' | 'content_v6' | 'mantra' | 'cards'
+type FactorSnapshots = Record<string, Partial<Record<SnapshotKind, string>>>
+
+function factorContentKind(factor: string): SnapshotKind {
+  return factor === 'western_astrology' ? 'content_v6' : 'content'
+}
 
 // The model sometimes wraps JSON output in a markdown code fence despite being told not to —
 // strip it before parsing so that doesn't silently trigger the fallback path.
@@ -21,8 +34,9 @@ async function getOrCreateSnapshot(
   userId: string,
   today: string,
   factor: string,
-  kind: 'content' | 'mantra' | 'cards',
-  generate: () => Promise<string>
+  kind: SnapshotKind,
+  generate: () => Promise<string>,
+  options?: { skipCache?: boolean; isValid?: (value: string) => boolean }
 ): Promise<string> {
   const { data: existing } = await supabase
     .from('daily_messages')
@@ -32,8 +46,11 @@ async function getOrCreateSnapshot(
     .single()
 
   const snapshots = (existing?.factor_snapshots ?? {}) as FactorSnapshots
-  const cached = snapshots[factor]?.[kind]
-  if (cached) return cached
+
+  if (!options?.skipCache) {
+    const cached = snapshots[factor]?.[kind]
+    if (cached && (!options?.isValid || options.isValid(cached))) return cached
+  }
 
   const value = await generate()
 
@@ -53,9 +70,9 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const { factor, factorResults, profile: bodyProfile, mantraOnly, cardsOnly } = body
-
-  const today = new Date().toISOString().split('T')[0]
+  const { factor, factorResults, profile: bodyProfile, mantraOnly, cardsOnly, forceRefresh, timezone } = body
+  const timeZone = resolveTimeZone(timezone)
+  const today = localDateKey(new Date(), timeZone)
 
   // If requesting just today's spiritual mantra (for the dashboard card)
   if (factor === 'spirituality' && factorResults && mantraOnly) {
@@ -83,8 +100,15 @@ export async function POST(req: NextRequest) {
       effectiveResults = { ...factorResults, cards: JSON.parse(cardsJson) }
     }
 
-    const content = await getOrCreateSnapshot(supabase, user.id, today, factor, 'content',
-      () => generateFactorContent(factor, effectiveResults, bodyProfile))
+    const contentKind = factorContentKind(factor)
+    const content = await getOrCreateSnapshot(
+      supabase, user.id, today, factor, contentKind,
+      () => generateFactorContent(factor, effectiveResults, bodyProfile, timeZone),
+      {
+        skipCache: !!(forceRefresh && factor === 'western_astrology'),
+        isValid: factor === 'western_astrology' ? isWesternAstrologyReading : undefined,
+      }
+    )
     return NextResponse.json({ factor_content: content })
   }
 
@@ -135,9 +159,15 @@ export async function POST(req: NextRequest) {
       case 'ikigai': {
         const labels: Record<string, string> = { western_astrology: 'Western Astrology', eastern_astrology: 'Eastern Astrology', spirituality: 'Spirituality', values: 'Values', ikigai: 'Ikigai' }
         const label = labels[f.factor_type as string]
-        const todaysReading = await getOrCreateSnapshot(supabase, user.id, today, f.factor_type, 'content',
-          () => generateFactorContent(f.factor_type, r, profile))
-        return `${label} today: ${todaysReading}`
+        const contentKind = factorContentKind(f.factor_type)
+        const todaysReading = await getOrCreateSnapshot(
+          supabase, user.id, today, f.factor_type, contentKind,
+          () => generateFactorContent(f.factor_type, r, profile, timeZone),
+          {
+            isValid: f.factor_type === 'western_astrology' ? isWesternAstrologyReading : undefined,
+          }
+        )
+        return `${label} today: ${formatFactorReadingForSummary(f.factor_type, todaysReading)}`
       }
       default: return ''
     }
@@ -225,9 +255,11 @@ Write a single short mantra (5-10 words) for today, grounded in these resonant t
 async function generateFactorContent(
   factor: string,
   results: Record<string, unknown>,
-  profile: { first_name: string; age: number; gender: string } | null
+  profile: { first_name: string; age: number; gender: string } | null,
+  timeZone: string
 ): Promise<string> {
-  const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+  const now = new Date()
+  const dayOfWeek = localWeekday(now, timeZone)
   const firstName = profile?.first_name?.trim()
   const personalization = firstName
     ? ` Address ${firstName} by name at least once, and write in second person ("you") throughout — never refer to them in the third person or as "this person"/"they." This should feel written specifically for ${firstName}, not generic. Write plain prose only — no asterisks, no bold, no italics, no markdown of any kind.`
@@ -238,7 +270,7 @@ async function generateFactorContent(
   }
 
   if (factor === 'western_astrology') {
-    return generateWesternAstrologyReading(results, dayOfWeek, personalization)
+    return generateWesternAstrologyReading(results, dayOfWeek, personalization, timeZone)
   }
 
   const factorPrompts: Record<string, string> = {
@@ -273,14 +305,34 @@ Offer a brief daily reflection (3-4 sentences) that helps them live their ikigai
   }
 }
 
+function formatFactorReadingForSummary(factor: string, content: string): string {
+  if (factor === 'western_astrology') {
+    const reading = parseWesternAstrologyReading(content)
+    if (reading) return `${reading.headline}. ${reading.summary}`
+  }
+  if (factor === 'tarot') {
+    try {
+      const parsed = JSON.parse(content) as { summary?: string }
+      if (parsed.summary) return parsed.summary
+    } catch {
+      // not JSON — use raw content
+    }
+  }
+  return content
+}
+
 // Computes today's real transiting planets and, where possible, how they actually aspect the
 // person's natal chart — so the reading is grounded in a real current sky, not an invented one.
 async function generateWesternAstrologyReading(
   results: Record<string, unknown>,
   dayOfWeek: string,
-  personalization: string
+  personalization: string,
+  timeZone: string
 ): Promise<string> {
   const r = results as { sun_sign?: string; moon_sign?: string; rising_sign?: string; chart?: NatalChart }
+  const now = new Date()
+  const todayDateKey = localDateKey(now, timeZone)
+  const todayLabel = localDateLabel(now, timeZone)
   const transiting = computeTransitingPlanets()
   const transitingSun = transiting.find(p => p.key === 'sun')
   const transitingMoon = transiting.find(p => p.key === 'moon')
@@ -309,28 +361,97 @@ async function generateWesternAstrologyReading(
     }
   }
 
-  const patterns = patternLines.length ? patternLines.join(' ') : `Transiting Sun is in ${transitingSun?.sign ?? 'motion'}.`
+  const patterns = patternLines.length
+    ? patternLines.map((line, i) => `${i + 1}. ${line}`).join('\n')
+    : `1. Transiting Sun is in ${transitingSun?.sign ?? 'motion'}.`
 
-  const prompt = `You are an astrologer. Today is ${dayOfWeek}.
+  const upcomingEvents = computeUpcomingAstrologicalEvents(undefined, timeZone, now)
+  const upcomingEventsText = formatEventsForPrompt(upcomingEvents, todayDateKey, timeZone)
+  const hasHighlights = upcomingEvents.length > 0
+
+  const fallback = () => JSON.stringify({
+    headline: 'The sky is speaking through your chart today',
+    aspects: patternLines.slice(0, 3).map(line => ({
+      label: line.replace(/\.$/, ''),
+      reflection: 'Sit with how this pattern might be showing up in your inner world today — not as a prediction, but as an invitation to notice.',
+    })),
+    summary: 'Your chart holds the blueprint of your becoming. Today, let one of these active patterns guide you inward.',
+    events: mergeWesternAstrologyEvents(upcomingEvents, [], todayDateKey, timeZone),
+  })
+
+  const highlightsSection = hasHighlights
+    ? `Major sky highlights for today and the next two days (each title listed once — write exactly one "events" entry per highlight below, no duplicates):
+${upcomingEventsText}
+
+For each highlight, write only "title" (exactly as given) and "impact" (2-3 sentences on how this sky event interacts with their natal chart). Each title must appear at most once in your events array. Do not repeat themes from the daily aspects above. Do not say "today" or "tomorrow" in the impact.`
+    : `There are no major sky highlights in the next three days (no eclipses, lunations, alignments, or retrograde stations). Return an empty "events" array. Do not invent highlight events.`
+
+  const prompt = `You are an astrologer. Today is ${dayOfWeek}, ${todayLabel} (${todayDateKey}) in the user's local timezone.
 
 Their natal chart: Sun ${r.sun_sign}, Moon ${r.moon_sign}, Rising ${r.rising_sign}.
 
-Today's actual astrological patterns:
+Today's personal transits and patterns (use for the daily reading below — do not repeat these in highlights):
 ${patterns}
 
-Generate a personalized horoscope (3-4 sentences). Weight it mostly on how their natal chart is currently experiencing these active patterns — the patterns above should be the main subject, with their natal placements as the lens those patterns are being filtered through, not the other way around. Don't just describe their chart in general; describe what's happening with it today. Make it reflective and grounded, not predictive. Focus on inner themes, not external events.${personalization}`
+${highlightsSection}
+
+Write a structured daily horoscope for TODAY grounded in how their natal chart is experiencing the personal transits listed above. Weight the reading on those patterns — their natal placements are the lens. Reflective and grounded, not predictive. Focus on inner themes.${personalization}
+
+First write a short headline (5-10 words) that captures today's overall tone.
+
+Then choose the 3-4 most meaningful patterns from today's transit list and, for each, write exactly 1-2 sentences in "reflection".
+
+Then write a separate 3-4 sentence "summary" that weaves those aspects into one cohesive narrative.
+
+Return JSON only, in this exact shape:
+{
+  "headline": "...",
+  "aspects": [{ "label": "...", "reflection": "..." }],
+  "summary": "...",
+  "events": [{ "title": "...", "impact": "..." }]
+}
+Keep each reflection to 1-2 sentences and the summary to 3-4 sentences. No markdown formatting of any kind. Write all text as plain prose.`
 
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 256,
+      max_tokens: 2400,
       messages: [{ role: 'user', content: prompt }],
     })
     const block = response.content[0]
     if (block.type !== 'text' || !block.text) throw new Error('Unexpected response content type')
-    return block.text
+    if (response.stop_reason === 'max_tokens') throw new Error('Model response truncated')
+
+    const parsed = JSON.parse(stripJsonFence(block.text)) as {
+      headline?: string
+      aspects?: { label: string; reflection: string }[]
+      summary?: string
+      events?: { title?: string; impact?: string; timing?: string }[]
+    }
+    if (!parsed.headline || !parsed.summary || !parsed.aspects?.length) {
+      throw new Error('Model returned incomplete western astrology reading')
+    }
+
+    const llmEvents: WesternAstrologyEvent[] = (parsed.events ?? []).map(event => ({
+      title: event.title ?? '',
+      timing: '',
+      impact: event.impact ?? '',
+    }))
+
+    const reading = {
+      headline: parsed.headline,
+      aspects: parsed.aspects,
+      summary: parsed.summary,
+      events: mergeWesternAstrologyEvents(upcomingEvents, llmEvents, todayDateKey, timeZone),
+    }
+
+    if (!isWesternAstrologyReading(JSON.stringify(reading))) {
+      throw new Error('Model returned incomplete western astrology reading')
+    }
+
+    return JSON.stringify(reading)
   } catch {
-    return 'Today is an invitation to sit with what you know about yourself through this lens.'
+    return fallback()
   }
 }
 
