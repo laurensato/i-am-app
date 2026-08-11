@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { Sun, Moon, ArrowUp, YinYang, Sparkle } from '@phosphor-icons/react'
 import { FactorType, FACTOR_META, IdentityFactor } from '@/lib/types'
+import { dateKeyToNoonUtc, addLocalDays } from '@/lib/localDate'
 import { NatalChart } from '@/lib/natalChart'
 import { createClient } from '@/lib/supabase/client'
 import { getTarotCardImage } from '@/lib/tarotImages'
@@ -15,6 +16,41 @@ import BreathworkLoader, { InsightBreathworkCard, minBreathDelay } from './Breat
 
 type TarotCard = { name: string; position: string; reversed?: boolean }
 
+function formatDateKey(dateKey: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(dateKeyToNoonUtc(dateKey))
+}
+
+function tarotTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
+function localTodayKey() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: tarotTimezone(),
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+function loadTarotRevealed(storageKey: string, count: number): Set<number> {
+  try {
+    if (localStorage.getItem(storageKey) === 'all') {
+      return new Set(Array.from({ length: count }, (_, i) => i))
+    }
+  } catch { /* private browsing */ }
+  return new Set()
+}
+
+function saveTarotRevealed(storageKey: string, revealed: Set<number>, total: number) {
+  if (revealed.size < total) return
+  try { localStorage.setItem(storageKey, 'all') } catch { /* private browsing */ }
+}
+
 interface Props {
   factor: FactorType
   factorRow: IdentityFactor
@@ -22,40 +58,22 @@ interface Props {
   userId: string
 }
 
-export default function DailyView({ factor, factorRow, profile, userId }: Props) {
+export default function DailyView(props: Props) {
+  if (props.factor === 'tarot') {
+    return <TarotDailyView {...props} />
+  }
+  return <StandardDailyView {...props} />
+}
+
+function StandardDailyView({ factor, factorRow, profile, userId }: Props) {
   const [content, setContent] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const meta = FACTOR_META[factor]
   const results = factorRow.results as Record<string, unknown>
 
-  const isTarot = factor === 'tarot'
-  // Tarot draws fresh each day (server-decided, cached for the day) rather than reusing the
-  // cards from the original discovery draw — fetched separately so the flip cards can render
-  // before the reading itself is generated.
-  const [todaysCards, setTodaysCards] = useState<TarotCard[] | null>(null)
-  const [revealed, setRevealed] = useState<Set<number>>(new Set())
-  const cards = todaysCards ?? []
-  const cardsLoaded = !isTarot || todaysCards !== null
-  const readyForReading = !isTarot || (cardsLoaded && cards.length > 0 && revealed.size === cards.length)
-
   useEffect(() => {
-    if (!isTarot) return
-    let cancelled = false
-    fetch('/api/daily-message', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ factor: 'tarot', cardsOnly: true }),
-    })
-      .then(res => { if (!res.ok) throw new Error('Failed to load today’s cards'); return res.json() })
-      .then(data => { if (!cancelled) setTodaysCards(data.cards ?? []) })
-      .catch(() => { if (!cancelled) setTodaysCards([]) })
-    return () => { cancelled = true }
-  }, [isTarot])
-
-  useEffect(() => {
-    if (!readyForReading) return
     fetchDailyContent()
-  }, [readyForReading])
+  }, [])
 
   async function fetchDailyContent(forceRefresh = false) {
     setLoading(true)
@@ -98,50 +116,375 @@ export default function DailyView({ factor, factorRow, profile, userId }: Props)
     <motion.div className="flex flex-col gap-6"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 
-      <div className="text-center">
-        <div className="mb-3 flex justify-center" style={{ color: 'var(--text-secondary)' }}>
-          <FactorIcon factor={factor} size={48} weight="thin" />
-        </div>
-        <h2 className="text-2xl font-bold mb-1"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
-          {meta.label}
-        </h2>
-        <p className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-      </div>
+      <DailyPageHeader factor={factor} meta={meta} />
 
-      {isTarot && !cardsLoaded && (
-        <div className="flex justify-center gap-4">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="rounded-xl animate-pulse" style={{ width: 96, height: 168, backgroundColor: 'var(--parchment)' }} />
-          ))}
-        </div>
-      )}
-
-      {isTarot && cardsLoaded && (
-        <TarotCardReveal
-          cards={cards}
-          revealed={revealed}
-          onReveal={i => setRevealed(prev => new Set(prev).add(i))}
-        />
-      )}
-
-      {isTarot && !cardsLoaded ? null : isTarot && !readyForReading ? (
-        <p className="text-sm font-light text-center" style={{ color: 'var(--text-muted)' }}>
-          Tap each card to reveal it and unlock today&apos;s reading.
-        </p>
-      ) : isTarot ? (
-        <TarotDailyInsight loading={loading} content={content} />
-      ) : factor === 'western_astrology' ? (
+      {factor === 'western_astrology' ? (
         <WesternAstrologyDailyInsight loading={loading} content={content} />
       ) : (
         <DailyInsight loading={loading} content={content} />
       )}
 
-      {/* Factor summary */}
       <FactorSnapshot factor={factor} results={results} userId={userId} />
     </motion.div>
+  )
+}
+
+function TarotDailyView({ factorRow, profile }: Props) {
+  const meta = FACTOR_META.tarot
+  const results = factorRow.results as Record<string, unknown>
+
+  return (
+    <motion.div className="flex flex-col gap-8"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <DailyPageHeader factor="tarot" meta={meta} />
+      <TarotDailySection factorRow={factorRow} profile={profile} />
+      <TarotWeeklySection factorRow={factorRow} profile={profile} />
+    </motion.div>
+  )
+}
+
+function DailyPageHeader({ factor, meta }: { factor: FactorType; meta: typeof FACTOR_META[FactorType] }) {
+  return (
+    <div className="text-center">
+      <div className="mb-3 flex justify-center" style={{ color: 'var(--text-secondary)' }}>
+        <FactorIcon factor={factor} size={48} weight="thin" />
+      </div>
+      <h2 className="text-2xl font-bold mb-1"
+        style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        {meta.label}
+      </h2>
+      <p className="text-sm font-light" style={{ color: 'var(--text-muted)' }}>
+        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+      </p>
+    </div>
+  )
+}
+
+function TarotSectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="text-center">
+      <p className="text-xs font-medium tracking-widest uppercase mb-1" style={{ color: 'var(--text-muted)' }}>
+        {title}
+      </p>
+      {subtitle && (
+        <p className="text-sm font-light" style={{ color: 'var(--text-secondary)' }}>
+          {subtitle}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function TarotCardBackButton({ onClick, disabled, label }: { onClick: () => void; disabled?: boolean; label: string }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="rounded-xl overflow-hidden transition-transform hover:scale-[1.02] disabled:opacity-60"
+      style={{ width: 96, height: 168, backgroundColor: 'var(--sol-navy)', border: '1px solid rgba(255,255,255,0.15)' }}
+      aria-label={label}
+    >
+      <div className="w-full h-full flex items-center justify-center">
+        <Sparkle size={28} weight="thin" color="rgba(255,255,255,0.4)" />
+      </div>
+    </button>
+  )
+}
+
+function TarotDailySection({ factorRow, profile }: {
+  factorRow: IdentityFactor
+  profile: { first_name: string; age: number; gender: string } | null
+}) {
+  const [cards, setCards] = useState<TarotCard[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [drawing, setDrawing] = useState(false)
+  const [revealed, setRevealed] = useState<Set<number>>(new Set())
+  const [content, setContent] = useState('')
+  const [readingLoading, setReadingLoading] = useState(false)
+
+  const readyForReading = cards !== null && cards.length > 0 && revealed.size === cards.length
+
+  const revealKey = `tarot_daily_${localTodayKey()}`
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/daily-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ factor: 'tarot', tarotDashboard: true, timezone: tarotTimezone() }),
+    })
+      .then(res => { if (!res.ok) throw new Error('Failed to load daily card'); return res.json() })
+      .then(data => {
+        if (cancelled) return
+        if (data.daily?.cards?.length) {
+          setCards(data.daily.cards)
+          setRevealed(loadTarotRevealed(revealKey, data.daily.cards.length))
+        }
+        setLoading(false)
+      })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [revealKey])
+
+  useEffect(() => {
+    if (!readyForReading) return
+    let cancelled = false
+    setReadingLoading(true)
+
+    const breath = minBreathDelay()
+    fetch('/api/daily-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        factor: 'tarot',
+        factorResults: factorRow.results,
+        profile,
+        tarotSpread: 'single',
+        timezone: tarotTimezone(),
+      }),
+    })
+      .then(res => { if (!res.ok) throw new Error('Failed to load reading'); return res.json() })
+      .then(async data => {
+        await breath
+        if (!cancelled) setContent(data.factor_content ?? '')
+      })
+      .catch(async () => {
+        await breath
+        if (!cancelled) setContent('Your card holds a message for today. Sit with what arises.')
+      })
+      .finally(() => { if (!cancelled) setReadingLoading(false) })
+
+    return () => { cancelled = true }
+  }, [readyForReading, factorRow.results, profile])
+
+  async function drawDaily() {
+    setDrawing(true)
+    try {
+      const res = await fetch('/api/daily-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ factor: 'tarot', cardsOnly: true, tarotSpread: 'single', timezone: tarotTimezone() }),
+      })
+      if (!res.ok) throw new Error('Failed to draw daily card')
+      const data = await res.json()
+      setCards(data.cards ?? [])
+      setRevealed(new Set())
+      setContent('')
+      try { localStorage.removeItem(revealKey) } catch { /* private browsing */ }
+    } catch {
+      setCards(null)
+    }
+    setDrawing(false)
+  }
+
+  return (
+    <section className="flex flex-col gap-4 pb-8 border-b" style={{ borderColor: 'var(--parchment)' }}>
+      <TarotSectionHeader
+        title="Daily"
+        subtitle="One card drawn for today — a focused message to sit with."
+      />
+
+      {loading ? (
+        <div className="flex justify-center">
+          <div className="rounded-xl animate-pulse" style={{ width: 96, height: 168, backgroundColor: 'var(--parchment)' }} />
+        </div>
+      ) : cards ? (
+        <>
+          <TarotCardReveal
+            cards={cards}
+            revealed={revealed}
+            onReveal={i => setRevealed(prev => {
+              const next = new Set(prev).add(i)
+              saveTarotRevealed(revealKey, next, cards.length)
+              return next
+            })}
+          />
+          {revealed.size < cards.length && (
+            <p className="text-sm font-light text-center" style={{ color: 'var(--text-muted)' }}>
+              Tap the card to reveal it and unlock today&apos;s reading.
+            </p>
+          )}
+          {readyForReading && <TarotDailyInsight loading={readingLoading} content={content} />}
+        </>
+      ) : (
+        <>
+          <div className="flex justify-center">
+            <TarotCardBackButton onClick={drawDaily} disabled={drawing} label="Draw today's card" />
+          </div>
+          <button
+            type="button"
+            onClick={drawDaily}
+            disabled={drawing}
+            className="text-sm font-medium mx-auto disabled:opacity-60"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {drawing ? 'Drawing…' : 'Draw today\'s card'}
+          </button>
+        </>
+      )}
+    </section>
+  )
+}
+
+function TarotWeeklySection({ factorRow, profile }: {
+  factorRow: IdentityFactor
+  profile: { first_name: string; age: number; gender: string } | null
+}) {
+  const [weeklyCards, setWeeklyCards] = useState<TarotCard[] | null>(null)
+  const [drawnAt, setDrawnAt] = useState<string | null>(null)
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [drawing, setDrawing] = useState(false)
+  const [revealed, setRevealed] = useState<Set<number>>(new Set())
+  const [content, setContent] = useState('')
+  const [readingLoading, setReadingLoading] = useState(false)
+
+  const revealKey = drawnAt ? `tarot_weekly_${drawnAt}` : null
+  const readyForReading = weeklyCards !== null && weeklyCards.length > 0 && revealed.size === weeklyCards.length
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/daily-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ factor: 'tarot', tarotDashboard: true, timezone: tarotTimezone() }),
+    })
+      .then(res => { if (!res.ok) throw new Error('Failed to load weekly cards'); return res.json() })
+      .then(data => {
+        if (cancelled) return
+        if (data.weekly?.cards?.length) {
+          setWeeklyCards(data.weekly.cards)
+          setDrawnAt(data.weekly.drawnAt ?? null)
+          setExpiresAt(data.weekly.expiresAt ?? null)
+          const key = `tarot_weekly_${data.weekly.drawnAt}`
+          setRevealed(loadTarotRevealed(key, data.weekly.cards.length))
+          if (data.weekly.content) setContent(data.weekly.content)
+        }
+        setLoading(false)
+      })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!readyForReading || content) return
+    let cancelled = false
+    setReadingLoading(true)
+
+    const breath = minBreathDelay()
+    fetch('/api/daily-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        factor: 'tarot',
+        factorResults: factorRow.results,
+        profile,
+        tarotSpread: 'weekly',
+        timezone: tarotTimezone(),
+      }),
+    })
+      .then(res => { if (!res.ok) throw new Error('Failed to load weekly reading'); return res.json() })
+      .then(async data => {
+        await breath
+        if (!cancelled) setContent(data.factor_content ?? '')
+      })
+      .catch(async () => {
+        await breath
+        if (!cancelled) setContent('Your weekly spread holds a message for the days ahead. Sit with what arises.')
+      })
+      .finally(() => { if (!cancelled) setReadingLoading(false) })
+
+    return () => { cancelled = true }
+  }, [readyForReading, content, factorRow.results, profile])
+
+  async function drawWeekly() {
+    setDrawing(true)
+    try {
+      const res = await fetch('/api/daily-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ factor: 'tarot', weeklyCardsOnly: true, timezone: tarotTimezone() }),
+      })
+      if (!res.ok) throw new Error('Failed to draw weekly cards')
+      const data = await res.json()
+      setWeeklyCards(data.cards ?? [])
+      setDrawnAt(data.drawnAt ?? null)
+      setExpiresAt(data.expiresAt ?? null)
+      setRevealed(new Set())
+      setContent('')
+      if (data.drawnAt) {
+        try { localStorage.removeItem(`tarot_weekly_${data.drawnAt}`) } catch { /* private browsing */ }
+      }
+    } catch {
+      setWeeklyCards(null)
+      setDrawnAt(null)
+      setExpiresAt(null)
+    }
+    setDrawing(false)
+  }
+
+  const activeUntil = expiresAt
+    ? formatDateKey(addLocalDays(expiresAt, -1, tarotTimezone()))
+    : null
+
+  return (
+    <section className="flex flex-col gap-4">
+      <TarotSectionHeader
+        title="Weekly"
+        subtitle="Three cards for the week ahead — Theme, Focus, and Invitation."
+      />
+
+      {loading ? (
+        <div className="flex justify-center gap-4">
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="rounded-xl animate-pulse" style={{ width: 96, height: 168, backgroundColor: 'var(--parchment)' }} />
+          ))}
+        </div>
+      ) : weeklyCards ? (
+        <>
+          {activeUntil && (
+            <p className="text-xs font-light text-center" style={{ color: 'var(--text-muted)' }}>
+              Active through {activeUntil}
+            </p>
+          )}
+          <TarotCardReveal
+            cards={weeklyCards}
+            revealed={revealed}
+            onReveal={i => setRevealed(prev => {
+              const next = new Set(prev).add(i)
+              if (revealKey) saveTarotRevealed(revealKey, next, weeklyCards.length)
+              return next
+            })}
+          />
+          {revealed.size < weeklyCards.length && (
+            <p className="text-sm font-light text-center" style={{ color: 'var(--text-muted)' }}>
+              Tap each card to reveal it and unlock this week&apos;s reading.
+            </p>
+          )}
+          {readyForReading && (
+            <TarotWeeklyInsight loading={readingLoading} content={content} />
+          )}
+        </>
+      ) : (
+        <>
+          <div className="flex justify-center gap-4">
+            {Array.from({ length: 3 }, (_, i) => (
+              <TarotCardBackButton key={i} onClick={drawWeekly} disabled={drawing} label="Draw weekly tarot card" />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={drawWeekly}
+            disabled={drawing}
+            className="text-sm font-medium mx-auto disabled:opacity-60"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {drawing ? 'Drawing…' : 'Draw this week\'s cards'}
+          </button>
+        </>
+      )}
+    </section>
   )
 }
 
@@ -156,7 +499,7 @@ function TarotCardReveal({ cards, revealed, onReveal }: {
         const isRevealed = revealed.has(i)
         const img = getTarotCardImage(c.name)
         return (
-          <div key={c.position} className="flex flex-col items-center gap-2">
+          <div key={`${c.position}-${i}`} className="flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={() => !isRevealed && onReveal(i)}
@@ -182,11 +525,11 @@ function TarotCardReveal({ cards, revealed, onReveal }: {
                   <Sparkle size={28} weight="thin" color="rgba(255,255,255,0.4)" />
                 </div>
 
-                {/* Card face */}
-                <div className="absolute inset-0 rounded-xl overflow-hidden"
+                {/* Card face — no rounding; RWS artwork includes its own border */}
+                <div className="absolute inset-0"
                   style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                   {img ? (
-                    <Image src={img} alt={c.name} fill sizes="96px" className="object-cover"
+                    <Image src={img} alt={c.name} fill sizes="96px" className="object-contain"
                       style={{ transform: c.reversed ? 'rotate(180deg)' : 'none' }} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-center p-2"
@@ -273,10 +616,12 @@ function StructuredDailyInsight({
   loading,
   content,
   parse,
+  label = "Today's Insight",
 }: {
   loading: boolean
   content: string
   parse: (content: string) => StructuredDailyReading | null
+  label?: string
 }) {
   const reading = !loading ? parse(content) : null
 
@@ -284,7 +629,7 @@ function StructuredDailyInsight({
 
   return (
     <div className="p-6" style={{ backgroundColor: 'var(--sol-navy)' }}>
-      <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">Today&apos;s Insight</p>
+      <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">{label}</p>
       {reading ? (
         <div className="flex flex-col gap-4">
           {reading.headline && (
@@ -315,6 +660,17 @@ function StructuredDailyInsight({
 
 function TarotDailyInsight({ loading, content }: { loading: boolean; content: string }) {
   return <StructuredDailyInsight loading={loading} content={content} parse={parseTarotReading} />
+}
+
+function TarotWeeklyInsight({ loading, content }: { loading: boolean; content: string }) {
+  return (
+    <StructuredDailyInsight
+      loading={loading}
+      content={content}
+      parse={parseTarotReading}
+      label="This Week's Reading"
+    />
+  )
 }
 
 function SkyEventsBox({ events }: { events: { title: string; timing: string; impact: string }[] }) {

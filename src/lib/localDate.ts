@@ -61,3 +61,17 @@ export function enumerateLocalDayKeys(timeZone: string, start: Date, count: numb
   const first = localDateKey(start, timeZone)
   return Array.from({ length: count }, (_, i) => addLocalDays(first, i, timeZone))
 }
+
+/** Sunday-start week key (YYYY-MM-DD of the week's first day). */
+export function weekStartKey(date: Date, timeZone: string): string {
+  let cursor = localDateKey(date, timeZone)
+  for (let i = 0; i < 7; i++) {
+    const weekday = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      weekday: 'long',
+    }).format(dateKeyToNoonUtc(cursor))
+    if (weekday === 'Sunday') return cursor
+    cursor = addLocalDays(cursor, -1, timeZone)
+  }
+  return localDateKey(date, timeZone)
+}

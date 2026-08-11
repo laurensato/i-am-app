@@ -17,7 +17,10 @@ export const TAROT_DECK = [
   'Page of Pentacles', 'Knight of Pentacles', 'Queen of Pentacles', 'King of Pentacles',
 ]
 
-export const TAROT_POSITIONS = ['Past', 'Present', 'Future']
+export const TAROT_POSITIONS = ['Past', 'Present', 'Future'] as const
+export const WEEKLY_TAROT_POSITIONS = ['Theme', 'Focus', 'Invitation'] as const
+
+export type TarotSpread = 'single' | 'three' | 'weekly'
 
 export interface DrawnTarotCard {
   name: string
@@ -25,13 +28,28 @@ export interface DrawnTarotCard {
   reversed: boolean
 }
 
-export function drawTarotCards(): DrawnTarotCard[] {
+function shuffleDeck(): string[] {
   const shuffled = [...TAROT_DECK]
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
-  return TAROT_POSITIONS.map((position, i) => ({
+  return shuffled
+}
+
+export function drawTarotCards(spread: TarotSpread = 'three'): DrawnTarotCard[] {
+  const shuffled = shuffleDeck()
+
+  if (spread === 'single') {
+    return [{
+      name: shuffled[0],
+      position: 'Today',
+      reversed: Math.random() < 0.3,
+    }]
+  }
+
+  const positions = spread === 'weekly' ? WEEKLY_TAROT_POSITIONS : TAROT_POSITIONS
+  return positions.map((position, i) => ({
     name: shuffled[i],
     position,
     reversed: Math.random() < 0.3,

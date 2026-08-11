@@ -21,6 +21,22 @@ export default async function DiscoverPage({ params }: { params: Promise<{ facto
 
   if (!factorRow) redirect('/dashboard')
 
+  let resolvedFactorRow = factorRow
+  if (factor === 'tarot' && !factorRow.discovery_completed) {
+    const { data: updated } = await supabase
+      .from('identity_factors')
+      .update({
+        discovery_completed: true,
+        discovery_data: {},
+        results: {},
+      })
+      .eq('user_id', user.id)
+      .eq('factor_type', 'tarot')
+      .select('*')
+      .single()
+    if (updated) resolvedFactorRow = updated
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('first_name, age, gender')
@@ -30,7 +46,7 @@ export default async function DiscoverPage({ params }: { params: Promise<{ facto
   return (
     <DiscoverClient
       factor={factor as FactorType}
-      factorRow={factorRow}
+      factorRow={resolvedFactorRow}
       profile={profile}
       userId={user.id}
     />

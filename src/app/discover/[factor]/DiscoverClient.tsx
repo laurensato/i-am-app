@@ -8,7 +8,6 @@ import FactorIcon from '@/components/FactorIcon'
 import WesternAstrologyFlow from '@/components/discover/WesternAstrologyFlow'
 import EasternAstrologyFlow from '@/components/discover/EasternAstrologyFlow'
 import SpiritualityFlow from '@/components/discover/SpiritualityFlow'
-import TarotFlow from '@/components/discover/TarotFlow'
 import ValuesFlow from '@/components/discover/ValuesFlow'
 import IkigaiFlow from '@/components/discover/IkigaiFlow'
 import DailyView from '@/components/discover/DailyView'
@@ -32,7 +31,16 @@ export default function DiscoverClient({ factor, factorRow, profile, userId }: P
     router.refresh()
   }
 
-  // If already completed and not currently redoing it, show the daily view
+  // Tarot has no intake — daily and weekly draws are the full experience
+  if (factor === 'tarot') {
+    return (
+      <PageShell factor={factor}>
+        <DailyView factor={factor} factorRow={factorRow} profile={profile} userId={userId} />
+        <AskModal factor={factor} results={factorRow.results} profile={profile} />
+      </PageShell>
+    )
+  }
+
   if (factorRow.discovery_completed && !updating) {
     return (
       <PageShell factor={factor}>
@@ -49,12 +57,10 @@ export default function DiscoverClient({ factor, factorRow, profile, userId }: P
     )
   }
 
-  // Show the discovery intro + flow
   const Flow = {
     western_astrology: WesternAstrologyFlow,
     eastern_astrology: EasternAstrologyFlow,
     spirituality: SpiritualityFlow,
-    tarot: TarotFlow,
     values: ValuesFlow,
     ikigai: IkigaiFlow,
   }[factor]

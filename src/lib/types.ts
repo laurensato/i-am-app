@@ -1,3 +1,5 @@
+export type { TarotSpread } from '@/lib/tarotDeck'
+
 export type FactorType =
   | 'western_astrology'
   | 'eastern_astrology'
@@ -105,8 +107,8 @@ export const FACTOR_META: Record<FactorType, { label: string; emoji: string; tim
   tarot: {
     label: 'Tarot',
     emoji: '🃏',
-    time: '5 minutes',
-    description: 'Draw cards to illuminate your past, present, and future.',
+    time: '2 minutes',
+    description: 'Draw a daily card and a weekly three-card spread.',
   },
   values: {
     label: 'Values',

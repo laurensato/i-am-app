@@ -2,16 +2,15 @@
 import { useState, useEffect, useRef, createElement } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Sun, Moon, ArrowUp, ArrowRight, CaretDown } from '@phosphor-icons/react'
 import { FactorType, FACTOR_META, IdentityFactor, UserProfile } from '@/lib/types'
-import { getTarotCardImage } from '@/lib/tarotImages'
 import { getZodiacAnimalIcon, getZodiacElementIcon } from '@/lib/zodiacIcons'
 import FactorIcon from '@/components/FactorIcon'
 import RotatingBackground from '@/components/RotatingBackground'
 import IkigaiChart from '@/components/discover/IkigaiChart'
+import TarotMiniCard from '@/components/discover/TarotMiniCard'
 import Logo from '@/components/Logo'
 
 interface Props {
@@ -53,7 +52,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
   }
 
   const activeFactors = factors.filter(f => f.is_active)
-  const completedFactors = activeFactors.filter(f => f.discovery_completed)
+  const completedFactors = activeFactors.filter(f => isFactorReady(f))
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
@@ -118,7 +117,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {activeFactors.map((factor, i) => {
               const meta = FACTOR_META[factor.factor_type as FactorType]
-              const completed = factor.discovery_completed
+              const completed = isFactorReady(factor)
               return (
                 <motion.div
                   key={factor.factor_type}
@@ -188,6 +187,11 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
   )
 }
 
+function isFactorReady(factor: IdentityFactor): boolean {
+  if (factor.factor_type === 'tarot') return factor.is_active
+  return factor.discovery_completed
+}
+
 function AccountMenu({ firstName, factors, userId, onSignOut }: {
   firstName: string
   factors: IdentityFactor[]
@@ -236,7 +240,7 @@ function AccountMenu({ firstName, factors, userId, onSignOut }: {
       : await supabase.from('identity_factors').insert({
         user_id: userId,
         factor_type: factor,
-        discovery_completed: false,
+        discovery_completed: factor === 'tarot',
         discovery_data: {},
         results: {},
         is_active: true,
@@ -401,25 +405,7 @@ function FactorSummary({ factor, userId }: { factor: IdentityFactor; userId: str
   }
 
   if (factor.factor_type === 'tarot') {
-    const r = results as { cards?: { name: string; reversed?: boolean }[]; summary?: string; essence?: string }
-    return (
-      <EssenceCardSummary factorType="tarot" results={r} userId={userId} hasData={!!r.cards?.length}
-        pills={
-          <div className="flex gap-2">
-            {(r.cards ?? []).map(c => {
-              const img = getTarotCardImage(c.name)
-              return img ? (
-                <div key={c.name} className="relative rounded-md overflow-hidden shrink-0" style={{ width: 40, height: 71 }}>
-                  <Image src={img} alt={c.name} fill sizes="40px" className="object-cover"
-                    style={{ transform: c.reversed ? 'rotate(180deg)' : 'none' }} />
-                </div>
-              ) : (
-                <Pill key={c.name} label="" value={c.name} />
-              )
-            })}
-          </div>
-        } />
-    )
+    return <TarotDashboardSummary />
   }
 
   if (factor.factor_type === 'values') {
@@ -431,6 +417,73 @@ function FactorSummary({ factor, userId }: { factor: IdentityFactor; userId: str
   }
 
   return null
+}
+
+function TarotDashboardSummary() {
+  const [state, setState] = useState<{
+    daily: { cards: { name: string; reversed?: boolean }[] } | null
+    weekly: { cards: { name: string; reversed?: boolean }[]; expiresAt?: string } | null
+  } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/daily-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        factor: 'tarot',
+        tarotDashboard: true,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    })
+      .then(res => { if (!res.ok) throw new Error('Failed to load tarot cards'); return res.json() })
+      .then(data => { if (!cancelled) setState(data) })
+      .catch(() => { if (!cancelled) setState({ daily: null, weekly: null }) })
+    return () => { cancelled = true }
+  }, [])
+
+  if (!state) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-3 w-16 rounded-full animate-pulse" style={{ backgroundColor: 'var(--parchment)' }} />
+        <div className="flex gap-2">
+          <div className="rounded-md animate-pulse" style={{ width: 40, height: 71, backgroundColor: 'var(--parchment)' }} />
+        </div>
+      </div>
+    )
+  }
+
+  const dailyDrawn = !!state.daily?.cards.length
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <p className="text-[10px] font-medium mb-2 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+          Daily
+        </p>
+        <div className="flex gap-2">
+          <TarotMiniCard
+            name={dailyDrawn ? state.daily!.cards[0]?.name : undefined}
+            reversed={state.daily?.cards[0]?.reversed}
+          />
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] font-medium mb-2 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+          Weekly
+        </p>
+        <div className="flex gap-2">
+          {Array.from({ length: 3 }, (_, i) => (
+            <TarotMiniCard
+              key={`weekly-${i}`}
+              name={state.weekly?.cards[i]?.name}
+              reversed={state.weekly?.cards[i]?.reversed}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function IkigaiCardSummary({ factor, userId }: { factor: IdentityFactor; userId: string }) {

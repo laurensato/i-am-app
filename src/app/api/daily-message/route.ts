@@ -2,23 +2,199 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { computeTransitingPlanets, computeTransitAspects, wholeSignAspect, NatalChart } from '@/lib/natalChart'
-import { drawTarotCards } from '@/lib/tarotDeck'
+import { drawTarotCards, type DrawnTarotCard, type TarotSpread } from '@/lib/tarotDeck'
 import {
   computeUpcomingAstrologicalEvents,
   formatEventsForPrompt,
   mergeWesternAstrologyEvents,
   resolveTimeZone,
 } from '@/lib/astrologicalEvents'
-import { localDateKey, localDateLabel, localWeekday } from '@/lib/localDate'
+import { localDateKey, localDateLabel, localWeekday, addLocalDays } from '@/lib/localDate'
 import { isWesternAstrologyReading, parseWesternAstrologyReading, type WesternAstrologyEvent } from '@/lib/structuredReading'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, dangerouslyAllowBrowser: true })
 
-type SnapshotKind = 'content' | 'content_v2' | 'content_v3' | 'content_v4' | 'content_v5' | 'content_v6' | 'mantra' | 'cards'
+type SnapshotKind =
+  | 'content' | 'content_v2' | 'content_v3' | 'content_v4' | 'content_v5' | 'content_v6'
+  | 'content_single' | 'content_three' | 'content_weekly'
+  | 'mantra' | 'cards' | 'cards_single' | 'cards_three' | 'cards_weekly'
 type FactorSnapshots = Record<string, Partial<Record<SnapshotKind, string>>>
 
-function factorContentKind(factor: string): SnapshotKind {
-  return factor === 'western_astrology' ? 'content_v6' : 'content'
+type WeeklyTarotCache = { drawnAt: string; cards: DrawnTarotCard[] }
+type WeeklyContentCache = { drawnAt: string; content: string }
+
+const WEEKLY_DRAW_DAYS = 7
+
+function weeklyDrawExpiresAt(drawnAt: string, timeZone: string): string {
+  return addLocalDays(drawnAt, WEEKLY_DRAW_DAYS, timeZone)
+}
+
+function isWeeklyDrawActive(drawnAt: string, today: string, timeZone: string): boolean {
+  return today < weeklyDrawExpiresAt(drawnAt, timeZone)
+}
+
+function parseWeeklyTarotCache(
+  value: string,
+  today: string,
+  timeZone: string
+): { cards: DrawnTarotCard[]; drawnAt: string; expiresAt: string } | null {
+  try {
+    const parsed = JSON.parse(value) as WeeklyTarotCache & { weekStart?: string }
+    const drawnAt = parsed.drawnAt ?? parsed.weekStart
+    if (!drawnAt || !Array.isArray(parsed.cards)) return null
+    if (!isWeeklyDrawActive(drawnAt, today, timeZone)) return null
+    return { cards: parsed.cards, drawnAt, expiresAt: weeklyDrawExpiresAt(drawnAt, timeZone) }
+  } catch { /* invalid cache */ }
+  return null
+}
+
+async function findWeeklyTarotDraw(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  timeZone: string
+): Promise<{ cards: DrawnTarotCard[]; drawnAt: string; expiresAt: string } | null> {
+  const today = localDateKey(new Date(), timeZone)
+  const searchFrom = addLocalDays(today, -(WEEKLY_DRAW_DAYS + 6), timeZone)
+  const { data: rows } = await supabase
+    .from('daily_messages')
+    .select('factor_snapshots')
+    .eq('user_id', userId)
+    .gte('date', searchFrom)
+    .lte('date', today)
+    .order('date', { ascending: false })
+
+  for (const row of rows ?? []) {
+    const cached = (row.factor_snapshots as FactorSnapshots)?.tarot?.cards_weekly
+    if (!cached) continue
+    const draw = parseWeeklyTarotCache(cached, today, timeZone)
+    if (draw) return draw
+  }
+  return null
+}
+
+async function getOrCreateWeeklyTarotCards(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  timeZone: string
+): Promise<DrawnTarotCard[]> {
+  const existing = await findWeeklyTarotDraw(supabase, userId, timeZone)
+  if (existing) return existing.cards
+
+  const today = localDateKey(new Date(), timeZone)
+  const payload = JSON.stringify({
+    drawnAt: today,
+    cards: drawTarotCards('weekly'),
+  } satisfies WeeklyTarotCache)
+
+  const { data: existingRow } = await supabase
+    .from('daily_messages')
+    .select('factor_snapshots')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .single()
+
+  const snapshots = (existingRow?.factor_snapshots ?? {}) as FactorSnapshots
+  const nextSnapshots: FactorSnapshots = {
+    ...snapshots,
+    tarot: { ...snapshots.tarot, cards_weekly: payload },
+  }
+
+  await supabase.from('daily_messages').upsert({
+    user_id: userId,
+    date: today,
+    factor_snapshots: nextSnapshots,
+  }, { onConflict: 'user_id,date' })
+
+  return JSON.parse(payload).cards as DrawnTarotCard[]
+}
+
+async function findWeeklyTarotContent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  drawnAt: string,
+  timeZone: string
+): Promise<string | null> {
+  const today = localDateKey(new Date(), timeZone)
+  const { data: rows } = await supabase
+    .from('daily_messages')
+    .select('factor_snapshots')
+    .eq('user_id', userId)
+    .gte('date', drawnAt)
+    .lte('date', today)
+    .order('date', { ascending: false })
+
+  for (const row of rows ?? []) {
+    const cached = (row.factor_snapshots as FactorSnapshots)?.tarot?.content_weekly
+    if (!cached) continue
+    try {
+      const parsed = JSON.parse(cached) as WeeklyContentCache
+      if (parsed.drawnAt === drawnAt && parsed.content) return parsed.content
+    } catch { /* invalid cache */ }
+  }
+  return null
+}
+
+async function getOrCreateWeeklyTarotContent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  timeZone: string,
+  weeklyDraw: { drawnAt: string; cards: DrawnTarotCard[] },
+  generate: () => Promise<string>
+): Promise<string> {
+  const existing = await findWeeklyTarotContent(supabase, userId, weeklyDraw.drawnAt, timeZone)
+  if (existing) return existing
+
+  const content = await generate()
+  const today = localDateKey(new Date(), timeZone)
+  const payload = JSON.stringify({ drawnAt: weeklyDraw.drawnAt, content } satisfies WeeklyContentCache)
+
+  const { data: existingRow } = await supabase
+    .from('daily_messages')
+    .select('factor_snapshots')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .single()
+
+  const snapshots = (existingRow?.factor_snapshots ?? {}) as FactorSnapshots
+  const nextSnapshots: FactorSnapshots = {
+    ...snapshots,
+    tarot: { ...snapshots.tarot, content_weekly: payload },
+  }
+
+  await supabase.from('daily_messages').upsert({
+    user_id: userId,
+    date: today,
+    factor_snapshots: nextSnapshots,
+  }, { onConflict: 'user_id,date' })
+
+  return content
+}
+
+function readDailyTarotSnapshots(snapshots: FactorSnapshots['tarot']) {
+  if (snapshots?.cards_single) {
+    return { spread: 'single' as const, cards: JSON.parse(snapshots.cards_single) as DrawnTarotCard[] }
+  }
+  return null
+}
+
+function factorContentKind(factor: string, tarotSpread?: TarotSpread): SnapshotKind {
+  if (factor === 'western_astrology') return 'content_v6'
+  if (factor === 'tarot' && tarotSpread === 'single') return 'content_single'
+  if (factor === 'tarot' && tarotSpread === 'weekly') return 'content_weekly'
+  if (factor === 'tarot' && tarotSpread) return 'content_three'
+  return 'content'
+}
+
+function tarotCardsKind(spread: TarotSpread): SnapshotKind {
+  if (spread === 'single') return 'cards_single'
+  if (spread === 'weekly') return 'cards_weekly'
+  return 'cards_three'
+}
+
+function parseTarotSpread(value: unknown): TarotSpread {
+  if (value === 'single') return 'single'
+  if (value === 'weekly') return 'weekly'
+  return 'three'
 }
 
 // The model sometimes wraps JSON output in a markdown code fence despite being told not to —
@@ -70,7 +246,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const { factor, factorResults, profile: bodyProfile, mantraOnly, cardsOnly, forceRefresh, timezone } = body
+  const { factor, factorResults, profile: bodyProfile, mantraOnly, cardsOnly, weeklyCardsOnly, tarotDashboard, forceRefresh, timezone, tarotSpread: bodyTarotSpread } = body
   const timeZone = resolveTimeZone(timezone)
   const today = localDateKey(new Date(), timeZone)
 
@@ -81,26 +257,86 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ mantra })
   }
 
-  // If requesting just today's tarot draw (drawn once per day, cached, shown before the reading)
+  // Read-only snapshot for the dashboard tarot card (daily + weekly draws, no auto-draw)
+  if (factor === 'tarot' && tarotDashboard) {
+    const { data: existing } = await supabase
+      .from('daily_messages')
+      .select('factor_snapshots')
+      .eq('user_id', user.id)
+      .eq('date', today)
+      .single()
+
+    const snapshots = (existing?.factor_snapshots ?? {}) as FactorSnapshots
+    const daily = readDailyTarotSnapshots(snapshots.tarot)
+    const weeklyDraw = await findWeeklyTarotDraw(supabase, user.id, timeZone)
+    const weeklyContent = weeklyDraw
+      ? await findWeeklyTarotContent(supabase, user.id, weeklyDraw.drawnAt, timeZone)
+      : null
+
+    return NextResponse.json({
+      daily,
+      weekly: weeklyDraw
+        ? {
+            cards: weeklyDraw.cards,
+            drawnAt: weeklyDraw.drawnAt,
+            expiresAt: weeklyDraw.expiresAt,
+            content: weeklyContent,
+          }
+        : null,
+    })
+  }
+
+  // If requesting just today's tarot draw (drawn once per day per spread, cached before the reading)
+  if (factor === 'tarot' && weeklyCardsOnly) {
+    const cards = await getOrCreateWeeklyTarotCards(supabase, user.id, timeZone)
+    const draw = await findWeeklyTarotDraw(supabase, user.id, timeZone)
+    return NextResponse.json({
+      cards,
+      spread: 'weekly',
+      drawnAt: draw?.drawnAt,
+      expiresAt: draw?.expiresAt,
+    })
+  }
+
+  // If requesting just today's tarot draw (drawn once per day per spread, cached before the reading)
   if (factor === 'tarot' && cardsOnly) {
-    const cardsJson = await getOrCreateSnapshot(supabase, user.id, today, factor, 'cards',
-      async () => JSON.stringify(drawTarotCards()))
-    return NextResponse.json({ cards: JSON.parse(cardsJson) })
+    const spread = parseTarotSpread(bodyTarotSpread)
+    if (spread === 'weekly') {
+      const cards = await getOrCreateWeeklyTarotCards(supabase, user.id, timeZone)
+      return NextResponse.json({ cards, spread: 'weekly' })
+    }
+    const cardsJson = await getOrCreateSnapshot(supabase, user.id, today, factor, tarotCardsKind(spread),
+      async () => JSON.stringify(drawTarotCards(spread)))
+    return NextResponse.json({ cards: JSON.parse(cardsJson), spread })
   }
 
   // If requesting a specific factor's daily content
   if (factor && factorResults) {
-    // Tarot's daily reading is always about today's freshly-drawn cards, not whatever cards
-    // were originally drawn at discovery — override with the same cached daily draw used above
-    // so the reading matches whatever the person actually revealed.
     let effectiveResults = factorResults
+    let contentKind = factorContentKind(factor)
+
     if (factor === 'tarot') {
-      const cardsJson = await getOrCreateSnapshot(supabase, user.id, today, factor, 'cards',
-        async () => JSON.stringify(drawTarotCards()))
-      effectiveResults = { ...factorResults, cards: JSON.parse(cardsJson) }
+      const spread = parseTarotSpread(bodyTarotSpread)
+
+      if (spread === 'weekly') {
+        const weeklyDraw = await findWeeklyTarotDraw(supabase, user.id, timeZone)
+        if (!weeklyDraw) {
+          return NextResponse.json({ error: 'No active weekly draw' }, { status: 400 })
+        }
+        effectiveResults = { ...factorResults, cards: weeklyDraw.cards, spread: 'weekly' }
+        const content = await getOrCreateWeeklyTarotContent(
+          supabase, user.id, timeZone, weeklyDraw,
+          () => generateFactorContent(factor, effectiveResults, bodyProfile, timeZone)
+        )
+        return NextResponse.json({ factor_content: content })
+      }
+
+      const cardsJson = await getOrCreateSnapshot(supabase, user.id, today, factor, tarotCardsKind(spread),
+        async () => JSON.stringify(drawTarotCards(spread)))
+      effectiveResults = { ...factorResults, cards: JSON.parse(cardsJson), spread }
+      contentKind = factorContentKind(factor, spread)
     }
 
-    const contentKind = factorContentKind(factor)
     const content = await getOrCreateSnapshot(
       supabase, user.id, today, factor, contentKind,
       () => generateFactorContent(factor, effectiveResults, bodyProfile, timeZone),
@@ -465,16 +701,51 @@ async function generateTarotReading(
   personalization: string
 ): Promise<string> {
   const cards = (results as { cards?: { name: string; position: string; reversed?: boolean }[] }).cards ?? []
+  const spread = (results as { spread?: TarotSpread }).spread ?? (cards.length === 1 ? 'single' : 'three')
   const cardList = cards.map(c => `${c.position}: ${c.name}${c.reversed ? ' (reversed)' : ''}`).join('\n')
 
   const fallback = () => JSON.stringify({
     cards: cards.map(c => ({ position: c.position, reflection: `The energy of ${c.name} is still unfolding — sit with what it stirred in you.` })),
-    summary: 'Your cards spoke. Their message is still alive. What has unfolded since you drew them?',
+    summary: spread === 'single'
+      ? 'Your card holds a message for today. Sit with what it stirred in you.'
+      : spread === 'weekly'
+      ? 'Your weekly spread holds a message for the days ahead. Sit with what each card stirred in you.'
+      : 'Your cards spoke. Their message is still alive. What has unfolded since you drew them?',
   })
 
   if (!cards.length) return fallback()
 
-  const prompt = `You are a tarot reader. Today is ${dayOfWeek}. These cards were drawn:
+  const prompt = spread === 'single'
+    ? `You are a tarot reader. Today is ${dayOfWeek}. This card was drawn for today:
+${cardList}
+
+Write a 2-3 sentence reflection that names what this card traditionally means and how that meaning might be showing up for them today. Reflective, not predictive.${personalization}
+
+Then write a separate 2-3 sentence summary that deepens the message of this single card as their reading for today.
+
+Return JSON only, in this exact shape:
+{
+  "cards": [{ "position": "Today", "reflection": "..." }],
+  "summary": "..."
+}
+No markdown formatting of any kind — not in the JSON structure, and not inside any string values. Write all text as plain prose.`
+    : spread === 'weekly'
+    ? `You are a tarot reader. These three cards were drawn for the week ahead:
+${cardList}
+
+The positions are Theme (the week's overarching energy), Focus (where to direct attention this week), and Invitation (what the cards are inviting them toward).
+
+For each card, write a 2-3 sentence reflection that names what that card traditionally means in its position and how that energy might unfold across the coming week. Reflective, not predictive.${personalization}
+
+Then write a separate 3-4 sentence summary that weaves Theme, Focus, and Invitation into one cohesive weekly reading — how the three energies work together, not just a recap of each card.
+
+Return JSON only, in this exact shape, with one "cards" entry per card above using its exact position name:
+{
+  "cards": [{ "position": "...", "reflection": "..." }],
+  "summary": "..."
+}
+No markdown formatting of any kind — not in the JSON structure, and not inside any string values. Write all text as plain prose.`
+    : `You are a tarot reader. Today is ${dayOfWeek}. These cards were drawn:
 ${cardList}
 
 For each card, write a 2-3 sentence reflection that names what that card traditionally means and how that meaning might be showing up today, in new ways. Reflective, not predictive.${personalization}

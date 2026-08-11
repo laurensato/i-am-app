@@ -59,7 +59,7 @@ export default function OnboardingPage() {
       selectedFactors.map(f => ({
         user_id: user.id,
         factor_type: f,
-        discovery_completed: false,
+        discovery_completed: f === 'tarot',
         discovery_data: {},
         results: {},
       }))
