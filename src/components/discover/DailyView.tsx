@@ -11,6 +11,8 @@ import { getTarotCardImage } from '@/lib/tarotImages'
 import FactorIcon from '@/components/FactorIcon'
 import NatalChartWheel, { AspectsTable } from './NatalChart'
 import IkigaiChart from './IkigaiChart'
+import IkigaiReading from './IkigaiReading'
+import { parseIkigaiReading, type IkigaiReading as IkigaiReadingSections } from '@/lib/ikigaiReading'
 import { parseWesternAstrologyReading as parseWesternAstrologyJson } from '@/lib/structuredReading'
 import BreathworkLoader, { InsightBreathworkCard, minBreathDelay } from './BreathworkLoader'
 
@@ -124,7 +126,13 @@ function StandardDailyView({ factor, factorRow, profile, userId }: Props) {
         <DailyInsight loading={loading} content={content} />
       )}
 
-      <FactorSnapshot factor={factor} results={results} userId={userId} />
+      <FactorSnapshot
+        factor={factor}
+        results={results}
+        userId={userId}
+        discoveryData={factorRow.discovery_data}
+        profile={profile}
+      />
     </motion.div>
   )
 }
@@ -730,7 +738,19 @@ function WesternAstrologyDailyInsight({ loading, content }: { loading: boolean; 
   )
 }
 
-function FactorSnapshot({ factor, results, userId }: { factor: FactorType; results: Record<string, unknown>; userId: string }) {
+function FactorSnapshot({
+  factor,
+  results,
+  userId,
+  discoveryData,
+  profile,
+}: {
+  factor: FactorType
+  results: Record<string, unknown>
+  userId: string
+  discoveryData?: Record<string, unknown>
+  profile?: { first_name: string; age: number; gender: string } | null
+}) {
   if (factor === 'western_astrology') {
     const r = results as { sun_sign?: string; moon_sign?: string; rising_sign?: string; summary?: string; chart?: NatalChart }
     return (
@@ -863,36 +883,69 @@ function FactorSnapshot({ factor, results, userId }: { factor: FactorType; resul
   }
 
   if (factor === 'ikigai') {
-    return <IkigaiSnapshot results={results} userId={userId} />
+    return (
+      <IkigaiSnapshot
+        results={results}
+        userId={userId}
+        discoveryData={discoveryData}
+        profile={profile}
+      />
+    )
   }
 
   return null
 }
 
-function IkigaiSnapshot({ results, userId }: { results: Record<string, unknown>; userId: string }) {
-  const r = results as {
-    ikigai_statement?: string; love?: string[]; good_at?: string[]; world_needs?: string[]; paid_for?: string[]; essence?: string
-  }
-  const [word, setWord] = useState<string | null>(r.essence ?? null)
+function IkigaiSnapshot({
+  results,
+  userId,
+  discoveryData,
+  profile,
+}: {
+  results: Record<string, unknown>
+  userId: string
+  discoveryData?: Record<string, unknown>
+  profile?: { first_name: string; age: number; gender: string } | null
+}) {
+  const r = results as { ikigai_statement?: string; reading?: unknown }
+  const [reading, setReading] = useState<IkigaiReadingSections | null>(() => parseIkigaiReading(r.reading))
+  const [readingLoading, setReadingLoading] = useState(!parseIkigaiReading(r.reading))
   const supabase = createClient()
 
   useEffect(() => {
-    if (word || !r.ikigai_statement) return
+    if (parseIkigaiReading(r.reading)) return
+
     let cancelled = false
-    fetch('/api/discover', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ factor: 'ikigai', backfillEssence: true, data: r }),
-    })
-      .then(res => res.json())
-      .then(async data => {
-        if (cancelled || !data.essence) return
-        setWord(data.essence)
-        await supabase.from('identity_factors')
-          .update({ results: { ...r, essence: data.essence } })
-          .eq('user_id', userId).eq('factor_type', 'ikigai')
-      })
-      .catch(() => {})
+
+    async function backfill() {
+      setReadingLoading(true)
+      try {
+        const res = await fetch('/api/discover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            factor: 'ikigai',
+            backfillReading: true,
+            profile,
+            data: { ...results, discovery_data: discoveryData },
+          }),
+        })
+        const data = await res.json()
+        const parsed = parseIkigaiReading(data.reading)
+        if (!parsed || cancelled) return
+
+        setReading(parsed)
+        await supabase.from('identity_factors').update({
+          results: { ...results, reading: parsed },
+        }).eq('user_id', userId).eq('factor_type', 'ikigai')
+      } catch {
+        /* reading stays null */
+      } finally {
+        if (!cancelled) setReadingLoading(false)
+      }
+    }
+
+    backfill()
     return () => { cancelled = true }
   }, [])
 
@@ -900,13 +953,14 @@ function IkigaiSnapshot({ results, userId }: { results: Record<string, unknown>;
     <div className="flex flex-col gap-4">
       <div className="p-6 text-center" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
         <p className="text-xs font-medium mb-3 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>Your Reason for Being</p>
-        <p className="text-lg font-normal italic" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
+        <p className="text-lg font-normal leading-relaxed" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
           &ldquo;{r.ikigai_statement}&rdquo;
         </p>
       </div>
-      <div className="p-4" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
-        <IkigaiChart word={word} love={r.love} good_at={r.good_at} world_needs={r.world_needs} paid_for={r.paid_for} size={340} />
+      <div className="px-4 py-6 flex justify-center" style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}>
+        <IkigaiChart size={340} linkToReading />
       </div>
+      <IkigaiReading reading={reading} loading={readingLoading} />
     </div>
   )
 }

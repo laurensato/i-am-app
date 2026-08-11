@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { geocodeBirthPlace, computeNatalChart } from '@/lib/natalChart'
+import { buildIkigaiReadingPrompt, parseIkigaiReading } from '@/lib/ikigaiReading'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, dangerouslyAllowBrowser: true })
 
@@ -71,12 +72,18 @@ function formatCircleAnswers(entries: { question: string; answer: string }[] | u
   return (entries ?? []).map(e => `Q: ${e.question}\nA: ${e.answer}`).join('\n\n')
 }
 
+function stripJsonFence(text: string): string {
+  const trimmed = text.trim()
+  const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/)
+  return match ? match[1].trim() : trimmed
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { factor, data, profile, backfillEssence, backfillQuote } = await req.json()
+  const { factor, data, profile, backfillEssence, backfillQuote, backfillReading } = await req.json()
 
   // Backfill a missing literary quote on a values result saved before that field existed.
   if (factor === 'values' && backfillQuote) {
@@ -109,6 +116,31 @@ Return only the JSON, no markdown.`
     }
   }
 
+  const firstName: string | undefined = (profile as { first_name?: string } | null)?.first_name?.trim() || undefined
+
+  const personalization = firstName
+    ? `You are writing directly to ${firstName}. Address them by name at least once in the summary (e.g. "${firstName}, ..."), and write in second person ("you") throughout — never refer to them in the third person or as "this person"/"they." This should feel like it was written specifically for ${firstName} — personal and specific, not a generic reading anyone could receive.`
+    : `Write in warm second person ("you") throughout — never refer to them in the third person or as "this person"/"they." This should feel personal and specific to this individual, not a generic reading.`
+
+  // Backfill a missing ikigai reading for results saved before that field existed.
+  if (factor === 'ikigai' && backfillReading) {
+    const prompt = buildIkigaiReadingPrompt(data as Record<string, unknown>, personalization)
+
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 3072,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      const text = response.content[0].type === 'text' ? response.content[0].text : ''
+      const reading = parseIkigaiReading(JSON.parse(stripJsonFence(text)))
+      if (!reading) return NextResponse.json({ error: 'Invalid reading format' }, { status: 500 })
+      return NextResponse.json({ reading })
+    } catch {
+      return NextResponse.json({ error: 'Failed to generate reading' }, { status: 500 })
+    }
+  }
+
   // Backfill a missing "essence" phrase for a result saved before that field existed.
   if (backfillEssence && BACKFILL_ESSENCE_PROMPTS[factor]) {
     const prompt = `${BACKFILL_ESSENCE_PROMPTS[factor](data as Record<string, unknown>)} Return only the phrase, no quotes, no markdown, nothing else.`
@@ -125,12 +157,6 @@ Return only the JSON, no markdown.`
       return NextResponse.json({ error: 'Failed to generate essence' }, { status: 500 })
     }
   }
-
-  const firstName: string | undefined = (profile as { first_name?: string } | null)?.first_name?.trim() || undefined
-
-  const personalization = firstName
-    ? `You are writing directly to ${firstName}. Address them by name at least once in the summary (e.g. "${firstName}, ..."), and write in second person ("you") throughout — never refer to them in the third person or as "this person"/"they." This should feel like it was written specifically for ${firstName} — personal and specific, not a generic reading anyone could receive.`
-    : `Write in warm second person ("you") throughout — never refer to them in the third person or as "this person"/"they." This should feel personal and specific to this individual, not a generic reading.`
 
   // For western astrology, try a real computed natal chart (real planetary positions, houses, aspects)
   // instead of asking the model to calculate positions. Falls through to the LLM-guess prompt below on failure
@@ -334,7 +360,18 @@ Return a JSON object:
   "world_needs": ["3-5 single words (one word each, not phrases) distilled from what the world needs"],
   "paid_for": ["3-5 single words (one word each, not phrases) distilled from what they can be paid for"],
   "ikigai_statement": "A single evocative sentence (15-25 words) that captures their unique reason for being. Should feel true and alive, not generic.",
-  "essence": "A single word — one word only, no phrase — that captures or represents this person's ikigai. Evocative and specific to them, not generic (avoid just returning 'Ikigai' or 'Purpose'). Title case."
+  "essence": "A single word — one word only, no phrase — that captures or represents this person's ikigai. Evocative and specific to them, not generic (avoid just returning 'Ikigai' or 'Purpose'). Title case.",
+  "reading": {
+    "ikigai": "3-4 sentences on their reason for being at the center — where all four circles meet",
+    "passion": "2-3 sentences on the intersection of what they love and what they're good at",
+    "mission": "2-3 sentences on the intersection of what they love and what the world needs",
+    "profession": "2-3 sentences on the intersection of what they're good at and what they can be paid for",
+    "vocation": "2-3 sentences on the intersection of what the world needs and what they can be paid for",
+    "love": "2-3 sentences on what they love — the full top circle on its own",
+    "good_at": "2-3 sentences on what they're good at — the full left circle on its own",
+    "world_needs": "2-3 sentences on what the world needs — the full right circle on its own",
+    "paid_for": "2-3 sentences on what they can be paid for — the full bottom circle on its own"
+  }
 }
 Return only the JSON, no markdown. Write all text values as plain prose — no asterisks, no bold, no italics, no markdown formatting of any kind inside the strings.`,
   }
@@ -345,12 +382,12 @@ Return only the JSON, no markdown. Write all text values as plain prose — no a
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: factor === 'eastern_astrology' ? 2048 : 1024,
+      max_tokens: factor === 'ikigai' ? 3072 : factor === 'eastern_astrology' ? 2048 : 1024,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = response.content[0].type === 'text' ? response.content[0].text : ''
-    const results = JSON.parse(text)
+    const results = JSON.parse(stripJsonFence(text))
     return NextResponse.json({ results })
   } catch {
     // Fallback for development/when API key isn't set

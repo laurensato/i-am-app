@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Crosshair, ArrowLeft, ArrowRight } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
-import { IdentityFactor } from '@/lib/types'
+import { IdentityFactor, IkigaiResults } from '@/lib/types'
 import SubmitButton from './SubmitButton'
 import ResultCard from './ResultCard'
 import IkigaiChart from './IkigaiChart'
+import IkigaiReading from './IkigaiReading'
 
 interface Props {
   factorRow: IdentityFactor
@@ -81,7 +82,7 @@ export default function IkigaiFlow({ profile, userId, onComplete }: Props) {
     Object.fromEntries(CIRCLES.map(c => [c.id, Object.fromEntries(c.questions.map(q => [q.id, '']))])) as Record<CircleId, Record<string, string>>
   )
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<{ love: string[]; good_at: string[]; world_needs: string[]; paid_for: string[]; ikigai_statement: string; essence?: string } | null>(null)
+  const [results, setResults] = useState<IkigaiResults | null>(null)
   const supabase = createClient()
 
   const circle = CIRCLES[circleIndex]
@@ -156,15 +157,13 @@ export default function IkigaiFlow({ profile, userId, onComplete }: Props) {
           <p className="text-xs font-medium mb-3 tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
             Your Reason for Being
           </p>
-          <p className="text-lg font-semibold italic leading-relaxed"
+          <p className="text-lg font-normal leading-relaxed"
             style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}>
             &ldquo;{results.ikigai_statement}&rdquo;
           </p>
         </div>
-        <div className="p-4" style={{ backgroundColor: 'var(--parchment)' }}>
-          <IkigaiChart word={results.essence ?? null} love={results.love} good_at={results.good_at}
-            world_needs={results.world_needs} paid_for={results.paid_for} size={320} />
-        </div>
+        <IkigaiChart size={320} linkToReading />
+        <IkigaiReading reading={results.reading ?? null} />
       </ResultCard>
     )
   }

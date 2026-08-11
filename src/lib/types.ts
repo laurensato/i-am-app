@@ -61,6 +61,8 @@ export interface ValuesResults {
   summary: string
 }
 
+import type { IkigaiReading } from '@/lib/ikigaiReading'
+
 export interface IkigaiResults {
   love: string[]
   good_at: string[]
@@ -68,6 +70,7 @@ export interface IkigaiResults {
   paid_for: string[]
   ikigai_statement: string
   essence?: string
+  reading?: IkigaiReading
 }
 
 export type FactorResults =

@@ -413,7 +413,7 @@ function FactorSummary({ factor, userId }: { factor: IdentityFactor; userId: str
   }
 
   if (factor.factor_type === 'ikigai') {
-    return <IkigaiCardSummary factor={factor} userId={userId} />
+    return <IkigaiCardSummary factor={factor} />
   }
 
   return null
@@ -486,36 +486,10 @@ function TarotDashboardSummary() {
   )
 }
 
-function IkigaiCardSummary({ factor, userId }: { factor: IdentityFactor; userId: string }) {
-  const results = factor.results as {
-    ikigai_statement?: string; love?: string[]; good_at?: string[]; world_needs?: string[]; paid_for?: string[]; essence?: string
-  }
-  const [word, setWord] = useState<string | null>(results.essence ?? null)
-  const supabase = createClient()
-
-  useEffect(() => {
-    if (word || !results.ikigai_statement) return
-    let cancelled = false
-    fetch('/api/discover', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ factor: 'ikigai', backfillEssence: true, data: results }),
-    })
-      .then(res => res.json())
-      .then(async data => {
-        if (cancelled || !data.essence) return
-        setWord(data.essence)
-        await supabase.from('identity_factors')
-          .update({ results: { ...results, essence: data.essence } })
-          .eq('user_id', userId).eq('factor_type', 'ikigai')
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
-
+function IkigaiCardSummary({ factor }: { factor: IdentityFactor }) {
   return (
     <div className="flex justify-center py-1">
-      <IkigaiChart word={word} size={150} showWords={false} />
+      <IkigaiChart size={150} />
     </div>
   )
 }
