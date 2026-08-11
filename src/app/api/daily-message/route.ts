@@ -18,7 +18,14 @@ type SnapshotKind =
   | 'content' | 'content_v2' | 'content_v3' | 'content_v4' | 'content_v5' | 'content_v6'
   | 'content_single' | 'content_three' | 'content_weekly'
   | 'mantra' | 'cards' | 'cards_single' | 'cards_three' | 'cards_weekly'
-type FactorSnapshots = Record<string, Partial<Record<SnapshotKind, string>>>
+
+type TarotSnapshots = Partial<Record<SnapshotKind, string>> & {
+  /** Which daily single-card draw the dashboard summary reflects, or "none". */
+  dashboard_summary_tarot_key?: string
+  dashboard_summary_version?: string
+}
+
+type FactorSnapshots = Record<string, TarotSnapshots | Partial<Record<SnapshotKind, string>>>
 
 type WeeklyTarotCache = { drawnAt: string; cards: DrawnTarotCard[] }
 type WeeklyContentCache = { drawnAt: string; content: string }
@@ -170,11 +177,45 @@ async function getOrCreateWeeklyTarotContent(
   return content
 }
 
-function readDailyTarotSnapshots(snapshots: FactorSnapshots['tarot']) {
+function readDailyTarotSnapshots(snapshots: TarotSnapshots | undefined) {
   if (snapshots?.cards_single) {
     return { spread: 'single' as const, cards: JSON.parse(snapshots.cards_single) as DrawnTarotCard[] }
   }
   return null
+}
+
+const DASHBOARD_SUMMARY_VERSION = '2'
+
+function normalizedTarotSummaryKey(key: string | null | undefined): string {
+  return key ?? 'none'
+}
+
+/** Which daily single-card draw the dashboard summary was built from, if any. */
+function dailyTarotSummaryKey(snapshots: TarotSnapshots | undefined): string | null {
+  if (!snapshots?.content_single) return null
+  try {
+    const cards = snapshots.cards_single
+      ? (JSON.parse(snapshots.cards_single) as DrawnTarotCard[])
+      : []
+    const card = cards[0]
+    if (card) return `${card.name}${card.reversed ? ':reversed' : ''}`
+  } catch { /* invalid cache */ }
+  return null
+}
+
+function isDashboardSummaryFresh(
+  existing: { insight?: string | null; mantra?: string | null; factor_snapshots?: unknown },
+  todaySnapshots: FactorSnapshots
+): boolean {
+  if (!existing.insight || !existing.mantra) return false
+
+  const snapshots = (existing.factor_snapshots ?? {}) as FactorSnapshots
+  const tarotMeta = snapshots.tarot as TarotSnapshots | undefined
+  if (tarotMeta?.dashboard_summary_version !== DASHBOARD_SUMMARY_VERSION) return false
+
+  const expectedTarotKey = normalizedTarotSummaryKey(dailyTarotSummaryKey(todaySnapshots.tarot as TarotSnapshots | undefined))
+  const cachedTarotKey = normalizedTarotSummaryKey(tarotMeta?.dashboard_summary_tarot_key)
+  return expectedTarotKey === cachedTarotKey
 }
 
 function factorContentKind(factor: string, tarotSpread?: TarotSpread): SnapshotKind {
@@ -356,8 +397,10 @@ export async function POST(req: NextRequest) {
     .eq('date', today)
     .single()
 
-  if (existing?.insight && existing?.mantra) {
-    return NextResponse.json({ insight: existing.insight, mantra: existing.mantra })
+  const existingSnapshots = (existing?.factor_snapshots ?? {}) as FactorSnapshots
+
+  if (isDashboardSummaryFresh(existing ?? {}, existingSnapshots)) {
+    return NextResponse.json({ insight: existing!.insight, mantra: existing!.mantra })
   }
 
   // Fetch user profile and completed factors
@@ -381,13 +424,21 @@ export async function POST(req: NextRequest) {
   // Generates (or reuses) each non-tarot factor's own daily reading as a side effect of
   // building this summary, so opening the dashboard is what causes every identity reading to
   // exist for the day — not waiting on the person to click into each factor's page individually.
-  // Tarot is excluded: its daily draw is meant to be revealed through the flip interaction, not
-  // pre-generated behind the scenes.
-  const factorSummary = (await Promise.all((factors ?? []).map(async f => {
+  // Tarot is handled separately below and only included when today's daily single-card reading exists.
+  const { data: todaySnapshotsRow } = await supabase
+    .from('daily_messages')
+    .select('factor_snapshots')
+    .eq('user_id', user.id)
+    .eq('date', today)
+    .single()
+
+  const todaySnapshots = (todaySnapshotsRow?.factor_snapshots ?? existingSnapshots) as FactorSnapshots
+
+  const factorSummaryParts = (await Promise.all((factors ?? []).map(async f => {
     const r = f.results as Record<string, unknown>
     switch (f.factor_type) {
       case 'tarot':
-        return `Tarot cards drawn: ${((r as {cards?:{name:string}[]}).cards ?? []).map(c => c.name).join(', ')}`
+        return ''
       case 'western_astrology':
       case 'eastern_astrology':
       case 'spirituality':
@@ -407,7 +458,17 @@ export async function POST(req: NextRequest) {
       }
       default: return ''
     }
-  }))).filter(Boolean).join('\n')
+  }))).filter(Boolean)
+
+  const hasActiveTarot = (factors ?? []).some(
+    f => f.factor_type === 'tarot' && f.is_active && f.discovery_completed
+  )
+  const contentSingle = hasActiveTarot ? todaySnapshots.tarot?.content_single : undefined
+  if (contentSingle) {
+    factorSummaryParts.push(`Tarot today: ${formatFactorReadingForSummary('tarot', contentSingle)}`)
+  }
+
+  const factorSummary = factorSummaryParts.join('\n')
 
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' })
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
@@ -420,7 +481,7 @@ Today: ${dayOfWeek}, ${dateStr}
 What we know about them:
 ${factorSummary || 'They are just beginning their journey of self-discovery.'}
 
-Generate a daily message for them. The insight should be 2-3 sentences — personal, reflective, and grounded in what we know about them. It should feel like it was written specifically for them, not generic.${profile?.first_name ? ` Address them by name — "${profile.first_name}" — at least once.` : ''} You have no record of what was said to them on any previous day, so write only about today — do not reference yesterday, an ongoing streak, or how their journey has been unfolding "lately." Ground the message in who they are (the identity factors above) and today's date, not in any implied history.
+Generate a daily message for them. The insight should be 2-3 sentences — personal, reflective, and grounded in what we know about them. It should feel like it was written specifically for them, not generic.${profile?.first_name ? ` Address them by name — "${profile.first_name}" — at least once.` : ''} You have no record of what was said to them on any previous day, so write only about today — do not reference yesterday, an ongoing streak, or how their journey has been unfolding "lately." Ground the message in who they are (the identity factors above) and today's date, not in any implied history. Only mention tarot if a "Tarot today" line appears above — never invent or assume a tarot card.
 
 The mantra should be 5-10 words that capture today's invitation to them. It should feel like something they could actually say to themselves.
 
@@ -444,11 +505,22 @@ No markdown formatting of any kind — not in the JSON structure, and not inside
     const { insight, mantra } = JSON.parse(stripJsonFence(block.text))
     if (!insight || !mantra) throw new Error('Model returned incomplete daily message')
 
+    const tarotKey = dailyTarotSummaryKey(todaySnapshots.tarot as TarotSnapshots | undefined)
+    const nextSnapshots: FactorSnapshots = {
+      ...todaySnapshots,
+      tarot: {
+        ...(todaySnapshots.tarot as TarotSnapshots | undefined),
+        dashboard_summary_version: DASHBOARD_SUMMARY_VERSION,
+        dashboard_summary_tarot_key: normalizedTarotSummaryKey(tarotKey),
+      },
+    }
+
     await supabase.from('daily_messages').upsert({
       user_id: user.id,
       date: today,
       insight,
       mantra,
+      factor_snapshots: nextSnapshots,
     }, { onConflict: 'user_id,date' })
 
     return NextResponse.json({ insight, mantra })

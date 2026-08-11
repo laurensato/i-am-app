@@ -12,6 +12,7 @@ import RotatingBackground from '@/components/RotatingBackground'
 import IkigaiChart from '@/components/discover/IkigaiChart'
 import TarotMiniCard from '@/components/discover/TarotMiniCard'
 import Logo from '@/components/Logo'
+import BreathworkOrb from '@/components/BreathworkOrb'
 
 interface Props {
   profile: UserProfile
@@ -27,9 +28,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
   const supabase = createClient()
 
   useEffect(() => {
-    if (!initialMessage) {
-      fetchDailyMessage()
-    }
+    fetchDailyMessage()
   }, [])
 
   async function fetchDailyMessage() {
@@ -104,6 +103,24 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
             </>
           )}
         </motion.section>
+
+        <nav className="flex justify-center -mt-2">
+          <Link
+            href="/tools/breathwork"
+            className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
+            aria-label="Open breathwork tools"
+          >
+            <span className="pointer-events-none">
+              <BreathworkOrb size={64} variant="default" animated />
+            </span>
+            <span
+              className="pointer-events-none text-xs font-medium tracking-widest uppercase group-hover:opacity-80"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
+            >
+              Breathwork
+            </span>
+          </Link>
+        </nav>
 
         {/* Identity factor cards */}
         <section className="relative overflow-hidden p-4 sm:p-6">
@@ -413,7 +430,7 @@ function FactorSummary({ factor, userId }: { factor: IdentityFactor; userId: str
   }
 
   if (factor.factor_type === 'ikigai') {
-    return <IkigaiCardSummary factor={factor} />
+    return <IkigaiCardSummary factor={factor} userId={userId} />
   }
 
   return null
@@ -486,9 +503,45 @@ function TarotDashboardSummary() {
   )
 }
 
-function IkigaiCardSummary({ factor }: { factor: IdentityFactor }) {
+function IkigaiCardSummary({ factor, userId }: { factor: IdentityFactor; userId: string }) {
+  const results = factor.results as { essence?: string; ikigai_statement?: string }
+  const [essence, setEssence] = useState<string | null>(results.essence ?? null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (essence || !results.ikigai_statement) return
+    let cancelled = false
+    fetch('/api/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ factor: 'ikigai', backfillEssence: true, data: results }),
+    })
+      .then(res => res.json())
+      .then(async data => {
+        if (cancelled || !data.essence) return
+        setEssence(data.essence)
+        await supabase.from('identity_factors')
+          .update({ results: { ...results, essence: data.essence } })
+          .eq('user_id', userId).eq('factor_type', 'ikigai')
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
   return (
-    <div className="flex justify-center py-1">
+    <div className="flex flex-col items-center gap-3 py-1">
+      {results.ikigai_statement && (
+        essence ? (
+          <p
+            className="text-xl font-normal tracking-wide"
+            style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}
+          >
+            {essence}
+          </p>
+        ) : (
+          <div className="h-5 w-24 rounded-full animate-pulse" style={{ backgroundColor: 'var(--parchment)' }} />
+        )
+      )}
       <IkigaiChart size={150} />
     </div>
   )

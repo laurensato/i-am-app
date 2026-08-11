@@ -1,12 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import BreathworkOrb from '@/components/BreathworkOrb'
+import {
+  BREATH_PHASE_MS,
+  MIN_BREATH_MS,
+  SQUARE_BREATH_PHASES,
+} from '@/lib/breathwork'
 
-export const BREATH_PHASE_MS = 4000
-/** Minimum breath before revealing Today's Insight: inhale + hold + exhale */
-export const MIN_BREATH_MS = BREATH_PHASE_MS * 3
-
-const BREATH_PHASES = ['inhale', 'hold', 'exhale', 'hold'] as const
+export { BREATH_PHASE_MS, MIN_BREATH_MS }
 
 type Props = {
   message?: string
@@ -26,12 +28,12 @@ export default function BreathworkLoader({
 
   useEffect(() => {
     const id = setInterval(() => {
-      setPhaseIndex(i => (i + 1) % BREATH_PHASES.length)
+      setPhaseIndex(i => (i + 1) % SQUARE_BREATH_PHASES.length)
     }, BREATH_PHASE_MS)
     return () => clearInterval(id)
   }, [])
 
-  const phase = BREATH_PHASES[phaseIndex]
+  const phase = SQUARE_BREATH_PHASES[phaseIndex]
 
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4">
@@ -42,48 +44,8 @@ export default function BreathworkLoader({
         {message}
       </p>
 
-      <div className="relative flex items-center justify-center mb-6" style={{ width: 168, height: 168 }}>
-        <div
-          className="breath-orb-halo absolute rounded-full"
-          aria-hidden
-          style={{
-            width: 168,
-            height: 168,
-            background: onDark
-              ? 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(190,210,235,0.08) 30%, transparent 62%)'
-              : 'radial-gradient(circle, rgba(190,210,235,0.4) 0%, rgba(147,180,210,0.16) 35%, transparent 65%)',
-            filter: 'blur(22px)',
-          }}
-        />
-
-        <div
-          className="breath-orb-mid absolute rounded-full"
-          aria-hidden
-          style={{
-            width: 120,
-            height: 120,
-            background: onDark
-              ? 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(210,225,245,0.1) 40%, transparent 68%)'
-              : 'radial-gradient(circle, rgba(220,235,250,0.36) 0%, rgba(180,205,230,0.14) 45%, transparent 72%)',
-            filter: 'blur(14px)',
-          }}
-        />
-
-        <div
-          className="breath-orb-core absolute rounded-full"
-          aria-hidden
-          style={{
-            width: 88,
-            height: 88,
-            background: onDark
-              ? 'radial-gradient(circle at 50% 48%, rgba(255,255,255,0.9) 0%, rgba(225,238,252,0.56) 28%, rgba(190,215,235,0.2) 52%, transparent 72%)'
-              : 'radial-gradient(circle at 50% 48%, rgba(255,255,255,0.95) 0%, rgba(210,228,248,0.64) 28%, rgba(170,200,225,0.24) 52%, transparent 72%)',
-            filter: 'blur(10px)',
-            boxShadow: onDark
-              ? '0 0 56px rgba(220,235,255,0.44), 0 0 96px rgba(180,205,230,0.24)'
-              : '0 0 48px rgba(190,210,235,0.56), 0 0 80px rgba(160,190,220,0.28)',
-          }}
-        />
+      <div className="mb-6">
+        <BreathworkOrb size={168} variant={onDark ? 'onDark' : 'default'} animated />
       </div>
 
       <div className="h-6 flex items-center justify-center" aria-live="polite">

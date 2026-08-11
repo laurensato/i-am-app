@@ -81,45 +81,45 @@ body {
 
 /* Breathwork loader — 16s cycle: 4s expand, 4s hold (pulse), 4s contract, 4s hold (pulse) */
 @keyframes breath-orb-core {
-  0% { transform: scale(0.48); opacity: 0.64; }
+  0% { transform: scale(0.48); opacity: 0.8; }
   25% { transform: scale(1); opacity: 1; }
   31.25% { transform: scale(1.06); opacity: 1; }
   37.5% { transform: scale(1); opacity: 1; }
   43.75% { transform: scale(1.06); opacity: 1; }
   50% { transform: scale(1); opacity: 1; }
-  75% { transform: scale(0.48); opacity: 0.64; }
-  81.25% { transform: scale(0.54); opacity: 0.76; }
-  87.5% { transform: scale(0.48); opacity: 0.64; }
-  93.75% { transform: scale(0.54); opacity: 0.76; }
-  100% { transform: scale(0.48); opacity: 0.64; }
+  75% { transform: scale(0.48); opacity: 0.8; }
+  81.25% { transform: scale(0.54); opacity: 0.88; }
+  87.5% { transform: scale(0.48); opacity: 0.8; }
+  93.75% { transform: scale(0.54); opacity: 0.88; }
+  100% { transform: scale(0.48); opacity: 0.8; }
 }
 
 @keyframes breath-orb-mid {
-  0% { transform: scale(0.58); opacity: 0.28; }
-  25% { transform: scale(1.32); opacity: 0.76; }
-  31.25% { transform: scale(1.4); opacity: 0.84; }
-  37.5% { transform: scale(1.32); opacity: 0.76; }
-  43.75% { transform: scale(1.4); opacity: 0.84; }
-  50% { transform: scale(1.32); opacity: 0.76; }
-  75% { transform: scale(0.58); opacity: 0.28; }
-  81.25% { transform: scale(0.66); opacity: 0.36; }
-  87.5% { transform: scale(0.58); opacity: 0.28; }
-  93.75% { transform: scale(0.66); opacity: 0.36; }
-  100% { transform: scale(0.58); opacity: 0.28; }
+  0% { transform: scale(0.58); opacity: 0.42; }
+  25% { transform: scale(1.32); opacity: 0.88; }
+  31.25% { transform: scale(1.4); opacity: 0.92; }
+  37.5% { transform: scale(1.32); opacity: 0.88; }
+  43.75% { transform: scale(1.4); opacity: 0.92; }
+  50% { transform: scale(1.32); opacity: 0.88; }
+  75% { transform: scale(0.58); opacity: 0.42; }
+  81.25% { transform: scale(0.66); opacity: 0.5; }
+  87.5% { transform: scale(0.58); opacity: 0.42; }
+  93.75% { transform: scale(0.66); opacity: 0.5; }
+  100% { transform: scale(0.58); opacity: 0.42; }
 }
 
 @keyframes breath-orb-halo {
-  0% { transform: scale(0.52); opacity: 0.32; }
-  25% { transform: scale(1.18); opacity: 0.96; }
+  0% { transform: scale(0.52); opacity: 0.48; }
+  25% { transform: scale(1.18); opacity: 1; }
   31.25% { transform: scale(1.26); opacity: 1; }
-  37.5% { transform: scale(1.18); opacity: 0.96; }
+  37.5% { transform: scale(1.18); opacity: 1; }
   43.75% { transform: scale(1.26); opacity: 1; }
-  50% { transform: scale(1.18); opacity: 0.96; }
-  75% { transform: scale(0.52); opacity: 0.32; }
-  81.25% { transform: scale(0.6); opacity: 0.4; }
-  87.5% { transform: scale(0.52); opacity: 0.32; }
-  93.75% { transform: scale(0.6); opacity: 0.4; }
-  100% { transform: scale(0.52); opacity: 0.32; }
+  50% { transform: scale(1.18); opacity: 1; }
+  75% { transform: scale(0.52); opacity: 0.48; }
+  81.25% { transform: scale(0.6); opacity: 0.54; }
+  87.5% { transform: scale(0.52); opacity: 0.48; }
+  93.75% { transform: scale(0.6); opacity: 0.54; }
+  100% { transform: scale(0.52); opacity: 0.48; }
 }
 
 .breath-orb-core,
@@ -135,3 +135,114 @@ body {
 .breath-orb-core { animation-name: breath-orb-core; }
 .breath-orb-mid { animation-name: breath-orb-mid; }
 .breath-orb-halo { animation-name: breath-orb-halo; }
+
+/* 4-7-8 breath — 19s cycle: 4s inhale, 7s hold, 8s exhale */
+@keyframes breath-orb-478-core {
+  0% { transform: scale(0.48); opacity: 0.8; }
+  21.05% { transform: scale(1); opacity: 1; }
+  39.47% { transform: scale(1.06); opacity: 1; }
+  57.89% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.48); opacity: 0.8; }
+}
+
+@keyframes breath-orb-478-mid {
+  0% { transform: scale(0.58); opacity: 0.42; }
+  21.05% { transform: scale(1.32); opacity: 0.88; }
+  39.47% { transform: scale(1.4); opacity: 0.92; }
+  57.89% { transform: scale(1.32); opacity: 0.88; }
+  100% { transform: scale(0.58); opacity: 0.42; }
+}
+
+@keyframes breath-orb-478-halo {
+  0% { transform: scale(0.52); opacity: 0.48; }
+  21.05% { transform: scale(1.18); opacity: 1; }
+  39.47% { transform: scale(1.26); opacity: 1; }
+  57.89% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(0.52); opacity: 0.48; }
+}
+
+.breath-orb-478-core,
+.breath-orb-478-mid,
+.breath-orb-478-halo {
+  transform-origin: center center;
+  will-change: transform, opacity;
+  animation-duration: 19s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.breath-orb-478-core { animation-name: breath-orb-478-core; }
+.breath-orb-478-mid { animation-name: breath-orb-478-mid; }
+.breath-orb-478-halo { animation-name: breath-orb-478-halo; }
+
+/* 6-2 energizer — 8s cycle: 6s inhale, 2s exhale */
+@keyframes breath-orb-62-core {
+  0% { transform: scale(0.48); opacity: 0.8; }
+  75% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.48); opacity: 0.8; }
+}
+
+@keyframes breath-orb-62-mid {
+  0% { transform: scale(0.58); opacity: 0.42; }
+  75% { transform: scale(1.32); opacity: 0.88; }
+  100% { transform: scale(0.58); opacity: 0.42; }
+}
+
+@keyframes breath-orb-62-halo {
+  0% { transform: scale(0.52); opacity: 0.48; }
+  75% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(0.52); opacity: 0.48; }
+}
+
+.breath-orb-62-core,
+.breath-orb-62-mid,
+.breath-orb-62-halo {
+  transform-origin: center center;
+  will-change: transform, opacity;
+  animation-duration: 8s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.breath-orb-62-core { animation-name: breath-orb-62-core; }
+.breath-orb-62-mid { animation-name: breath-orb-62-mid; }
+.breath-orb-62-halo { animation-name: breath-orb-62-halo; }
+
+/* Wellness diaphragmatic — 12s cycle: 6s inhale, 6s exhale */
+@keyframes breath-orb-wellness-core {
+  0% { transform: scale(0.48); opacity: 0.8; }
+  50% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.48); opacity: 0.8; }
+}
+
+@keyframes breath-orb-wellness-mid {
+  0% { transform: scale(0.58); opacity: 0.42; }
+  50% { transform: scale(1.32); opacity: 0.88; }
+  100% { transform: scale(0.58); opacity: 0.42; }
+}
+
+@keyframes breath-orb-wellness-halo {
+  0% { transform: scale(0.52); opacity: 0.48; }
+  50% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(0.52); opacity: 0.48; }
+}
+
+.breath-orb-wellness-core,
+.breath-orb-wellness-mid,
+.breath-orb-wellness-halo {
+  transform-origin: center center;
+  will-change: transform, opacity;
+  animation-duration: 12s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.breath-orb-wellness-core { animation-name: breath-orb-wellness-core; }
+.breath-orb-wellness-mid { animation-name: breath-orb-wellness-mid; }
+.breath-orb-wellness-halo { animation-name: breath-orb-wellness-halo; }
+
+.breathwork-tool-card--expanded {
+  min-height: 420px;
+  padding: 2rem;
+  box-shadow: 0 24px 48px color-mix(in srgb, var(--text-primary) 14%, transparent);
+}
