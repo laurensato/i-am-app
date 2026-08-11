@@ -47,12 +47,12 @@ export default function BreathworkLoader({
           className="breath-orb-halo absolute rounded-full"
           aria-hidden
           style={{
-            width: 140,
-            height: 140,
+            width: 168,
+            height: 168,
             background: onDark
-              ? 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(180,200,230,0.08) 45%, transparent 72%)'
-              : 'radial-gradient(circle, rgba(180,200,230,0.35) 0%, rgba(147,180,210,0.15) 50%, transparent 75%)',
-            filter: 'blur(10px)',
+              ? 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(190,210,235,0.08) 30%, transparent 62%)'
+              : 'radial-gradient(circle, rgba(190,210,235,0.4) 0%, rgba(147,180,210,0.16) 35%, transparent 65%)',
+            filter: 'blur(22px)',
           }}
         />
 
@@ -60,12 +60,12 @@ export default function BreathworkLoader({
           className="breath-orb-mid absolute rounded-full"
           aria-hidden
           style={{
-            width: 100,
-            height: 100,
+            width: 120,
+            height: 120,
             background: onDark
-              ? 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(200,220,240,0.04) 60%, transparent 100%)'
-              : 'radial-gradient(circle, rgba(200,220,240,0.25) 0%, rgba(147,180,210,0.1) 60%, transparent 100%)',
-            filter: 'blur(6px)',
+              ? 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(210,225,245,0.1) 40%, transparent 68%)'
+              : 'radial-gradient(circle, rgba(220,235,250,0.36) 0%, rgba(180,205,230,0.14) 45%, transparent 72%)',
+            filter: 'blur(14px)',
           }}
         />
 
@@ -73,14 +73,15 @@ export default function BreathworkLoader({
           className="breath-orb-core absolute rounded-full"
           aria-hidden
           style={{
-            width: 72,
-            height: 72,
+            width: 88,
+            height: 88,
             background: onDark
-              ? 'radial-gradient(circle at 38% 32%, rgba(255,255,255,0.95), rgba(210,225,240,0.55) 55%, rgba(140,170,200,0.3) 100%)'
-              : 'radial-gradient(circle at 38% 32%, rgba(255,255,255,0.95), rgba(190,210,235,0.6) 55%, rgba(120,155,190,0.35) 100%)',
+              ? 'radial-gradient(circle at 50% 48%, rgba(255,255,255,0.9) 0%, rgba(225,238,252,0.56) 28%, rgba(190,215,235,0.2) 52%, transparent 72%)'
+              : 'radial-gradient(circle at 50% 48%, rgba(255,255,255,0.95) 0%, rgba(210,228,248,0.64) 28%, rgba(170,200,225,0.24) 52%, transparent 72%)',
+            filter: 'blur(10px)',
             boxShadow: onDark
-              ? '0 0 48px rgba(220,235,255,0.35), inset 0 0 24px rgba(255,255,255,0.2)'
-              : '0 0 40px rgba(180,200,230,0.45), inset 0 0 20px rgba(255,255,255,0.35)',
+              ? '0 0 56px rgba(220,235,255,0.44), 0 0 96px rgba(180,205,230,0.24)'
+              : '0 0 48px rgba(190,210,235,0.56), 0 0 80px rgba(160,190,220,0.28)',
           }}
         />
       </div>

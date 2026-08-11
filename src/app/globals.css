@@ -81,45 +81,45 @@ body {
 
 /* Breathwork loader — 16s cycle: 4s expand, 4s hold (pulse), 4s contract, 4s hold (pulse) */
 @keyframes breath-orb-core {
-  0% { transform: scale(0.48); opacity: 0.45; }
-  25% { transform: scale(1); opacity: 0.92; }
-  31.25% { transform: scale(1.06); opacity: 0.96; }
-  37.5% { transform: scale(1); opacity: 0.92; }
-  43.75% { transform: scale(1.06); opacity: 0.96; }
-  50% { transform: scale(1); opacity: 0.92; }
-  75% { transform: scale(0.48); opacity: 0.45; }
-  81.25% { transform: scale(0.54); opacity: 0.52; }
-  87.5% { transform: scale(0.48); opacity: 0.45; }
-  93.75% { transform: scale(0.54); opacity: 0.52; }
-  100% { transform: scale(0.48); opacity: 0.45; }
+  0% { transform: scale(0.48); opacity: 0.64; }
+  25% { transform: scale(1); opacity: 1; }
+  31.25% { transform: scale(1.06); opacity: 1; }
+  37.5% { transform: scale(1); opacity: 1; }
+  43.75% { transform: scale(1.06); opacity: 1; }
+  50% { transform: scale(1); opacity: 1; }
+  75% { transform: scale(0.48); opacity: 0.64; }
+  81.25% { transform: scale(0.54); opacity: 0.76; }
+  87.5% { transform: scale(0.48); opacity: 0.64; }
+  93.75% { transform: scale(0.54); opacity: 0.76; }
+  100% { transform: scale(0.48); opacity: 0.64; }
 }
 
 @keyframes breath-orb-mid {
-  0% { transform: scale(0.58); opacity: 0.2; }
-  25% { transform: scale(1.32); opacity: 0.5; }
-  31.25% { transform: scale(1.4); opacity: 0.55; }
-  37.5% { transform: scale(1.32); opacity: 0.5; }
-  43.75% { transform: scale(1.4); opacity: 0.55; }
-  50% { transform: scale(1.32); opacity: 0.5; }
-  75% { transform: scale(0.58); opacity: 0.2; }
-  81.25% { transform: scale(0.66); opacity: 0.26; }
-  87.5% { transform: scale(0.58); opacity: 0.2; }
-  93.75% { transform: scale(0.66); opacity: 0.26; }
-  100% { transform: scale(0.58); opacity: 0.2; }
+  0% { transform: scale(0.58); opacity: 0.28; }
+  25% { transform: scale(1.32); opacity: 0.76; }
+  31.25% { transform: scale(1.4); opacity: 0.84; }
+  37.5% { transform: scale(1.32); opacity: 0.76; }
+  43.75% { transform: scale(1.4); opacity: 0.84; }
+  50% { transform: scale(1.32); opacity: 0.76; }
+  75% { transform: scale(0.58); opacity: 0.28; }
+  81.25% { transform: scale(0.66); opacity: 0.36; }
+  87.5% { transform: scale(0.58); opacity: 0.28; }
+  93.75% { transform: scale(0.66); opacity: 0.36; }
+  100% { transform: scale(0.58); opacity: 0.28; }
 }
 
 @keyframes breath-orb-halo {
-  0% { transform: scale(0.52); opacity: 0.22; }
-  25% { transform: scale(1.18); opacity: 0.62; }
-  31.25% { transform: scale(1.26); opacity: 0.68; }
-  37.5% { transform: scale(1.18); opacity: 0.62; }
-  43.75% { transform: scale(1.26); opacity: 0.68; }
-  50% { transform: scale(1.18); opacity: 0.62; }
-  75% { transform: scale(0.52); opacity: 0.22; }
-  81.25% { transform: scale(0.6); opacity: 0.28; }
-  87.5% { transform: scale(0.52); opacity: 0.22; }
-  93.75% { transform: scale(0.6); opacity: 0.28; }
-  100% { transform: scale(0.52); opacity: 0.22; }
+  0% { transform: scale(0.52); opacity: 0.32; }
+  25% { transform: scale(1.18); opacity: 0.96; }
+  31.25% { transform: scale(1.26); opacity: 1; }
+  37.5% { transform: scale(1.18); opacity: 0.96; }
+  43.75% { transform: scale(1.26); opacity: 1; }
+  50% { transform: scale(1.18); opacity: 0.96; }
+  75% { transform: scale(0.52); opacity: 0.32; }
+  81.25% { transform: scale(0.6); opacity: 0.4; }
+  87.5% { transform: scale(0.52); opacity: 0.32; }
+  93.75% { transform: scale(0.6); opacity: 0.4; }
+  100% { transform: scale(0.52); opacity: 0.32; }
 }
 
 .breath-orb-core,
