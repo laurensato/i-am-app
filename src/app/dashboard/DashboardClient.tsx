@@ -13,6 +13,8 @@ import IkigaiChart from '@/components/discover/IkigaiChart'
 import TarotMiniCard from '@/components/discover/TarotMiniCard'
 import Logo from '@/components/Logo'
 import BreathworkOrb from '@/components/BreathworkOrb'
+import RitualSunriseIcon from '@/components/RitualSunriseIcon'
+import AddToRitualButton from '@/components/rituals/AddToRitualButton'
 import VisualizationWaveIcon from '@/components/VisualizationWaveIcon'
 import JournalWritingIcon from '@/components/JournalWritingIcon'
 
@@ -76,7 +78,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
 
         {/* Daily message */}
         <motion.section
-          className="p-8 relative overflow-hidden"
+          className="p-8 pb-14 pr-14 relative overflow-hidden"
           style={{ backgroundColor: 'var(--sol-navy)' }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -104,9 +106,35 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
               </div>
             </>
           )}
+
+          {!loadingMessage && (
+            <div className="absolute bottom-4 right-4">
+              <AddToRitualButton
+                userId={userId}
+                stepId="daily_message"
+                factors={factors}
+                variant="onDark"
+              />
+            </div>
+          )}
         </motion.section>
 
         <nav className="flex justify-center gap-10 -mt-2 flex-wrap">
+          <Link
+            href="/tools/rituals"
+            className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
+            aria-label="Open rituals"
+          >
+            <span className="pointer-events-none">
+              <RitualSunriseIcon size={64} variant="default" animated />
+            </span>
+            <span
+              className="pointer-events-none text-xs font-medium tracking-widest uppercase group-hover:opacity-80"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
+            >
+              Rituals
+            </span>
+          </Link>
           <Link
             href="/tools/breathwork"
             className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"

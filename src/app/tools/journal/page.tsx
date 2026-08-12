@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ArrowLeft } from '@phosphor-icons/react/dist/ssr'
 import { createClient } from '@/lib/supabase/server'
 import JournalClient from '@/components/tools/journal/JournalClient'
+import AddToRitualButton from '@/components/rituals/AddToRitualButton'
 import type { JournalEntry } from '@/lib/journal'
 import { isJournalStorageMissing } from '@/lib/journalErrors'
 
@@ -19,6 +20,11 @@ export default async function JournalToolsPage() {
     .single()
 
   if (!profile) redirect('/onboarding')
+
+  const { data: factors } = await supabase
+    .from('identity_factors')
+    .select('*')
+    .eq('user_id', user.id)
 
   const { data: entries, error: entriesError } = await supabase
     .from('journal_entries')
@@ -45,12 +51,19 @@ export default async function JournalToolsPage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-6 py-10">
-        <h1
-          className="text-2xl font-normal mb-3"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}
-        >
-          Journal
-        </h1>
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <h1
+            className="text-2xl font-normal"
+            style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-primary)' }}
+          >
+            Journal
+          </h1>
+          <AddToRitualButton
+            userId={user.id}
+            stepId="journal"
+            factors={factors ?? []}
+          />
+        </div>
         <p
           className="text-sm font-light leading-relaxed mb-8 max-w-xl"
           style={{ color: 'var(--text-muted)' }}

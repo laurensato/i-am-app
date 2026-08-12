@@ -20,9 +20,10 @@ type Props = {
   title: string
   description: string
   steps: VisualizationStep[]
+  anchorId?: string
 }
 
-export default function StepVisualizationToolCard({ title, description, steps }: Props) {
+export default function StepVisualizationToolCard({ title, description, steps, anchorId }: Props) {
   const [sessionState, setSessionState] = useState<SessionState>('idle')
   const [sessionKey, setSessionKey] = useState(0)
   const [stepIndex, setStepIndex] = useState(0)
@@ -53,7 +54,8 @@ export default function StepVisualizationToolCard({ title, description, steps }:
   return (
     <BreathworkToolFocusShell focused={focused} onClose={closeSession} placeholderMinHeight={280}>
       <div
-        className={`visualization-tool-card flex flex-col items-center p-4 min-h-[280px]${focused ? ' visualization-tool-card--expanded' : ''}`}
+        id={anchorId}
+        className={`visualization-tool-card flex flex-col items-center p-4 min-h-[280px] scroll-mt-24${focused ? ' visualization-tool-card--expanded' : ''}`}
         style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}
       >
         <h2

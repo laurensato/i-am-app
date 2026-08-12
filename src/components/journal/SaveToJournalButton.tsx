@@ -11,9 +11,16 @@ type Props = {
   storageKey: string
   content: string
   disabled?: boolean
+  className?: string
 }
 
-export default function SaveToJournalButton({ userId, storageKey, content, disabled }: Props) {
+export default function SaveToJournalButton({
+  userId,
+  storageKey,
+  content,
+  disabled,
+  className,
+}: Props) {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -69,7 +76,10 @@ export default function SaveToJournalButton({ userId, storageKey, content, disab
       onClick={save}
       disabled={saved || saving || disabled || !content.trim()}
       aria-label={tooltip}
-      className="group absolute bottom-3 right-3 flex items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40"
+      className={
+        className ??
+        'group relative flex items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40'
+      }
       style={{ width: 40, height: 40 }}
     >
       <JournalWritingIcon size={36} variant="onDark" animated={!saved && !saving} />

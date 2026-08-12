@@ -43,12 +43,18 @@ export default async function DiscoverPage({ params }: { params: Promise<{ facto
     .eq('user_id', user.id)
     .single()
 
+  const { data: factors } = await supabase
+    .from('identity_factors')
+    .select('*')
+    .eq('user_id', user.id)
+
   return (
     <DiscoverClient
       factor={factor as FactorType}
       factorRow={resolvedFactorRow}
       profile={profile}
       userId={user.id}
+      factors={factors ?? []}
     />
   )
 }

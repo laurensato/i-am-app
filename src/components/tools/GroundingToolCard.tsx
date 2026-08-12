@@ -60,7 +60,8 @@ export default function GroundingToolCard() {
   return (
     <BreathworkToolFocusShell focused={focused} onClose={closeSession} placeholderMinHeight={220}>
       <div
-        className={`breathwork-tool-card flex flex-col items-center p-4 min-h-[220px]${focused ? ' breathwork-tool-card--expanded' : ''}`}
+        id="grounding"
+        className={`breathwork-tool-card flex flex-col items-center p-4 min-h-[220px] scroll-mt-24${focused ? ' breathwork-tool-card--expanded' : ''}`}
         style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}
       >
       <h2

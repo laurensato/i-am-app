@@ -349,3 +349,95 @@ body {
   animation: journal-bulb-turn-on-inner 7s ease-in-out infinite;
   animation-delay: -0.3s;
 }
+
+/* Dashboard rituals sunrise icon */
+@keyframes ritual-sunrise-ambient {
+  0%, 100% { opacity: 0.42; transform: scale(0.94); }
+  50% { opacity: 0.88; transform: scale(1.06); }
+}
+
+@keyframes ritual-sunrise-sun-rise {
+  0%, 100% { transform: translateY(1.5px); opacity: 0.82; }
+  50% { transform: translateY(-1.5px); opacity: 1; }
+}
+
+@keyframes ritual-sunrise-rays-pulse {
+  0%, 100% { opacity: 0.22; transform: rotate(0deg); }
+  50% { opacity: 0.52; transform: rotate(6deg); }
+}
+
+@keyframes ritual-sunrise-sky-breathe {
+  0%, 100% { opacity: 0.55; transform: scaleY(0.96); }
+  50% { opacity: 0.9; transform: scaleY(1.04); }
+}
+
+@keyframes ritual-sunrise-horizon-shimmer {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.78; }
+}
+
+.ritual-sunrise-ambient {
+  transform-origin: center center;
+  will-change: transform, opacity;
+  animation: ritual-sunrise-ambient 9s ease-in-out infinite;
+}
+
+.ritual-sunrise-sun {
+  transform-origin: 32px 36px;
+  transform-box: fill-box;
+  will-change: transform, opacity;
+  animation: ritual-sunrise-sun-rise 8s ease-in-out infinite;
+}
+
+.ritual-sunrise-rays {
+  transform-origin: 32px 36px;
+  transform-box: fill-box;
+  will-change: transform, opacity;
+  animation: ritual-sunrise-rays-pulse 12s ease-in-out infinite;
+}
+
+.ritual-sunrise-sky {
+  transform-origin: 32px 24px;
+  transform-box: fill-box;
+  will-change: transform, opacity;
+  animation: ritual-sunrise-sky-breathe 10s ease-in-out infinite;
+}
+
+.ritual-sunrise-horizon {
+  will-change: opacity;
+  animation: ritual-sunrise-horizon-shimmer 7s ease-in-out infinite;
+}
+
+/* Ritual progress bar */
+.ritual-progress-track {
+  background: color-mix(in srgb, var(--parchment) 55%, var(--warm-white));
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--im-ink) 5%, transparent);
+}
+
+.ritual-progress-fill {
+  background: linear-gradient(
+    90deg,
+    rgba(175, 200, 235, 0.55) 0%,
+    rgba(255, 236, 190, 0.72) 48%,
+    rgba(150, 185, 220, 0.88) 100%
+  );
+  box-shadow:
+    0 0 14px rgba(160, 190, 225, 0.42),
+    0 0 28px rgba(255, 210, 130, 0.18);
+}
+
+@keyframes ritual-progress-shimmer {
+  0% { transform: translateX(-120%); opacity: 0; }
+  20% { opacity: 0.85; }
+  100% { transform: translateX(260%); opacity: 0; }
+}
+
+.ritual-progress-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  animation: ritual-progress-shimmer 3.8s ease-in-out infinite;
+}

@@ -70,7 +70,8 @@ export default function PeaceToolCard() {
   return (
     <BreathworkToolFocusShell focused={focused} onClose={closeSession} placeholderMinHeight={280}>
       <div
-        className={`breathwork-tool-card flex flex-col items-center p-4 min-h-[280px]${focused ? ' breathwork-tool-card--expanded' : ''}`}
+        id="peace-breath"
+        className={`breathwork-tool-card flex flex-col items-center p-4 min-h-[280px] scroll-mt-24${focused ? ' breathwork-tool-card--expanded' : ''}`}
         style={{ backgroundColor: 'var(--warm-white)', border: '1px solid var(--parchment)' }}
       >
       <h2

@@ -18,9 +18,10 @@ interface Props {
   factorRow: IdentityFactor
   profile: { first_name: string; age: number; gender: string } | null
   userId: string
+  factors: IdentityFactor[]
 }
 
-export default function DiscoverClient({ factor, factorRow, profile, userId }: Props) {
+export default function DiscoverClient({ factor, factorRow, profile, userId, factors }: Props) {
   const router = useRouter()
   const meta = FACTOR_META[factor]
   const [updating, setUpdating] = useState(false)
@@ -35,7 +36,7 @@ export default function DiscoverClient({ factor, factorRow, profile, userId }: P
   if (factor === 'tarot') {
     return (
       <PageShell factor={factor}>
-        <DailyView factor={factor} factorRow={factorRow} profile={profile} userId={userId} />
+        <DailyView factor={factor} factorRow={factorRow} profile={profile} userId={userId} factors={factors} />
         <AskModal factor={factor} results={factorRow.results} profile={profile} />
       </PageShell>
     )
@@ -44,7 +45,7 @@ export default function DiscoverClient({ factor, factorRow, profile, userId }: P
   if (factorRow.discovery_completed && !updating) {
     return (
       <PageShell factor={factor}>
-        <DailyView factor={factor} factorRow={factorRow} profile={profile} userId={userId} />
+        <DailyView factor={factor} factorRow={factorRow} profile={profile} userId={userId} factors={factors} />
         <button onClick={() => setUpdating(true)}
           className="w-full mt-6 py-3 text-sm font-light text-center transition-colors"
           style={{ color: 'var(--text-muted)' }}>

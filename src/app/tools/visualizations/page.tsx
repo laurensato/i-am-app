@@ -18,6 +18,11 @@ export default async function VisualizationsToolsPage() {
 
   if (!profile) redirect('/onboarding')
 
+  const { data: factors } = await supabase
+    .from('identity_factors')
+    .select('*')
+    .eq('user_id', user.id)
+
   return (
     <main className="min-h-screen" style={{ backgroundColor: 'var(--cream)' }}>
       <header
@@ -51,7 +56,7 @@ export default async function VisualizationsToolsPage() {
           with how you want to feel.
         </p>
 
-        <VisualizationsToolsGrid />
+        <VisualizationsToolsGrid userId={user.id} factors={factors ?? []} />
       </div>
     </main>
   )

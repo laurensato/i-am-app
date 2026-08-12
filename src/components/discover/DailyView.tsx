@@ -16,6 +16,8 @@ import { parseIkigaiReading, type IkigaiReading as IkigaiReadingSections } from 
 import { parseWesternAstrologyReading as parseWesternAstrologyJson } from '@/lib/structuredReading'
 import BreathworkLoader, { InsightBreathworkCard, minBreathDelay } from './BreathworkLoader'
 import SaveToJournalButton from '@/components/journal/SaveToJournalButton'
+import AddToRitualButton from '@/components/rituals/AddToRitualButton'
+import { getRitualStepIdForFactor, type RitualStepId } from '@/lib/ritual'
 import {
   formatDateKeyLabel,
   formatFactorDailyReading,
@@ -67,6 +69,7 @@ interface Props {
   factorRow: IdentityFactor
   profile: { first_name: string; age: number; gender: string } | null
   userId: string
+  factors: IdentityFactor[]
 }
 
 export default function DailyView(props: Props) {
@@ -76,7 +79,7 @@ export default function DailyView(props: Props) {
   return <StandardDailyView {...props} />
 }
 
-function StandardDailyView({ factor, factorRow, profile, userId }: Props) {
+function StandardDailyView({ factor, factorRow, profile, userId, factors }: Props) {
   const [content, setContent] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const meta = FACTOR_META[factor]
@@ -130,9 +133,20 @@ function StandardDailyView({ factor, factorRow, profile, userId }: Props) {
       <DailyPageHeader factor={factor} meta={meta} />
 
       {factor === 'western_astrology' ? (
-        <WesternAstrologyDailyInsight loading={loading} content={content} userId={userId} />
+        <WesternAstrologyDailyInsight
+          loading={loading}
+          content={content}
+          userId={userId}
+          factors={factors}
+        />
       ) : (
-        <DailyInsight loading={loading} content={content} userId={userId} factor={factor} />
+        <DailyInsight
+          loading={loading}
+          content={content}
+          userId={userId}
+          factor={factor}
+          factors={factors}
+        />
       )}
 
       <FactorSnapshot
@@ -146,7 +160,7 @@ function StandardDailyView({ factor, factorRow, profile, userId }: Props) {
   )
 }
 
-function TarotDailyView({ factorRow, profile, userId }: Props) {
+function TarotDailyView({ factorRow, profile, userId, factors }: Props) {
   const meta = FACTOR_META.tarot
   const results = factorRow.results as Record<string, unknown>
 
@@ -154,8 +168,8 @@ function TarotDailyView({ factorRow, profile, userId }: Props) {
     <motion.div className="flex flex-col gap-8"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <DailyPageHeader factor="tarot" meta={meta} />
-      <TarotDailySection factorRow={factorRow} profile={profile} userId={userId} />
-      <TarotWeeklySection factorRow={factorRow} profile={profile} userId={userId} />
+      <TarotDailySection factorRow={factorRow} profile={profile} userId={userId} factors={factors} />
+      <TarotWeeklySection factorRow={factorRow} profile={profile} userId={userId} factors={factors} />
     </motion.div>
   )
 }
@@ -209,10 +223,11 @@ function TarotCardBackButton({ onClick, disabled, label }: { onClick: () => void
   )
 }
 
-function TarotDailySection({ factorRow, profile, userId }: {
+function TarotDailySection({ factorRow, profile, userId, factors }: {
   factorRow: IdentityFactor
   profile: { first_name: string; age: number; gender: string } | null
   userId: string
+  factors: IdentityFactor[]
 }) {
   const [cards, setCards] = useState<TarotCard[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -329,6 +344,7 @@ function TarotDailySection({ factorRow, profile, userId }: {
               content={content}
               userId={userId}
               cards={cards}
+              factors={factors}
             />
           )}
         </>
@@ -352,10 +368,11 @@ function TarotDailySection({ factorRow, profile, userId }: {
   )
 }
 
-function TarotWeeklySection({ factorRow, profile, userId }: {
+function TarotWeeklySection({ factorRow, profile, userId, factors }: {
   factorRow: IdentityFactor
   profile: { first_name: string; age: number; gender: string } | null
   userId: string
+  factors: IdentityFactor[]
 }) {
   const [weeklyCards, setWeeklyCards] = useState<TarotCard[] | null>(null)
   const [drawnAt, setDrawnAt] = useState<string | null>(null)
@@ -495,6 +512,7 @@ function TarotWeeklySection({ factorRow, profile, userId }: {
               userId={userId}
               cards={weeklyCards}
               drawnAt={drawnAt}
+              factors={factors}
             />
           )}
         </>
@@ -587,27 +605,56 @@ function TarotCardReveal({ cards, revealed, onReveal }: {
   )
 }
 
+function InsightCardActions({
+  userId,
+  stepId,
+  factors,
+  journalSave,
+}: {
+  userId: string
+  stepId: RitualStepId
+  factors: IdentityFactor[]
+  journalSave?: { userId: string; storageKey: string; content: string }
+}) {
+  return (
+    <div className="absolute bottom-3 right-3 flex items-center gap-1">
+      <AddToRitualButton userId={userId} stepId={stepId} factors={factors} variant="onDark" />
+      {journalSave && <SaveToJournalButton {...journalSave} />}
+    </div>
+  )
+}
+
 function DailyInsight({
   loading,
   content,
   userId,
   factor,
+  factors,
 }: {
   loading: boolean
   content: string
   userId: string
   factor: FactorType
+  factors: IdentityFactor[]
 }) {
   if (loading) return <InsightBreathworkCard />
 
   const journalContent = formatFactorDailyReading(factor, content)
   const storageKey = readingStorageKey(userId, factor, 'daily', todayDateKey())
+  const stepId = getRitualStepIdForFactor(factor, 'daily')
 
   return (
     <div className="relative p-6 pb-14 pr-14" style={{ backgroundColor: 'var(--sol-navy)' }}>
       <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">Today&apos;s Insight</p>
       <p className="text-white font-light leading-relaxed">{content}</p>
-      <SaveToJournalButton userId={userId} storageKey={storageKey} content={journalContent} />
+      {stepId && (
+        <InsightCardActions
+          userId={userId}
+          stepId={stepId}
+          factors={factors}
+          journalSave={{ userId, storageKey, content: journalContent }}
+        />
+      )}
     </div>
   )
 }
@@ -664,12 +711,14 @@ function StructuredDailyInsight({
   parse,
   label = "Today's Insight",
   journalSave,
+  ritualSave,
 }: {
   loading: boolean
   content: string
   parse: (content: string) => StructuredDailyReading | null
   label?: string
   journalSave?: { userId: string; storageKey: string; content: string }
+  ritualSave?: { userId: string; stepId: RitualStepId; factors: IdentityFactor[] }
 }) {
   const reading = !loading ? parse(content) : null
 
@@ -702,7 +751,14 @@ function StructuredDailyInsight({
       ) : (
         <p className="text-white font-light leading-relaxed">{content}</p>
       )}
-      {journalSave && <SaveToJournalButton {...journalSave} />}
+      {ritualSave && (
+        <InsightCardActions
+          userId={ritualSave.userId}
+          stepId={ritualSave.stepId}
+          factors={ritualSave.factors}
+          journalSave={journalSave}
+        />
+      )}
     </div>
   )
 }
@@ -712,11 +768,13 @@ function TarotDailyInsight({
   content,
   userId,
   cards,
+  factors,
 }: {
   loading: boolean
   content: string
   userId: string
   cards: TarotCard[]
+  factors: IdentityFactor[]
 }) {
   const journalContent = formatTarotJournalReading('daily', content, cards, readingDateLabel())
   const storageKey = readingStorageKey(userId, 'tarot', 'daily', todayDateKey())
@@ -729,6 +787,7 @@ function TarotDailyInsight({
       journalSave={
         !loading && content ? { userId, storageKey, content: journalContent } : undefined
       }
+      ritualSave={{ userId, stepId: 'tarot_daily', factors }}
     />
   )
 }
@@ -739,12 +798,14 @@ function TarotWeeklyInsight({
   userId,
   cards,
   drawnAt,
+  factors,
 }: {
   loading: boolean
   content: string
   userId: string
   cards: TarotCard[]
   drawnAt: string | null
+  factors: IdentityFactor[]
 }) {
   const dateLabel = drawnAt ? `Week of ${formatDateKeyLabel(drawnAt)}` : readingDateLabel()
   const periodKey = drawnAt ?? todayDateKey()
@@ -760,6 +821,7 @@ function TarotWeeklyInsight({
       journalSave={
         !loading && content ? { userId, storageKey, content: journalContent } : undefined
       }
+      ritualSave={{ userId, stepId: 'tarot_weekly', factors }}
     />
   )
 }
@@ -808,10 +870,12 @@ function WesternAstrologyDailyInsight({
   loading,
   content,
   userId,
+  factors,
 }: {
   loading: boolean
   content: string
   userId: string
+  factors: IdentityFactor[]
 }) {
   if (loading) return <InsightBreathworkCard />
 
@@ -827,8 +891,9 @@ function WesternAstrologyDailyInsight({
         content={content}
         parse={c => parseStructuredReading(c, 'aspects')}
         journalSave={
-        !loading && content ? { userId, storageKey, content: journalContent } : undefined
-      }
+          !loading && content ? { userId, storageKey, content: journalContent } : undefined
+        }
+        ritualSave={{ userId, stepId: 'western_astrology', factors }}
       />
     </div>
   )
