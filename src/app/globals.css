@@ -241,8 +241,111 @@ body {
 .breath-orb-wellness-mid { animation-name: breath-orb-wellness-mid; }
 .breath-orb-wellness-halo { animation-name: breath-orb-wellness-halo; }
 
-.breathwork-tool-card--expanded {
+.breathwork-tool-card--expanded,
+.visualization-tool-card--expanded {
   min-height: 420px;
   padding: 2rem;
   box-shadow: 0 24px 48px color-mix(in srgb, var(--text-primary) 14%, transparent);
+}
+
+/* Dashboard visualization wave icon */
+@keyframes viz-wave-drift-a {
+  0%, 100% { transform: translateX(0); opacity: 0.72; }
+  50% { transform: translateX(-6px); opacity: 1; }
+}
+
+@keyframes viz-wave-drift-b {
+  0%, 100% { transform: translateX(0); opacity: 0.58; }
+  50% { transform: translateX(5px); opacity: 0.88; }
+}
+
+@keyframes viz-wave-drift-c {
+  0%, 100% { transform: translateX(0); opacity: 0.42; }
+  50% { transform: translateX(-4px); opacity: 0.68; }
+}
+
+.viz-wave-line {
+  transform-origin: center center;
+  transform-box: fill-box;
+  will-change: transform, opacity;
+}
+
+.viz-wave-line-a {
+  animation: viz-wave-drift-a 7s ease-in-out infinite;
+}
+
+.viz-wave-line-b {
+  animation: viz-wave-drift-b 9s ease-in-out infinite;
+  animation-delay: -2s;
+}
+
+.viz-wave-line-c {
+  animation: viz-wave-drift-c 11s ease-in-out infinite;
+  animation-delay: -4s;
+}
+
+/* Dashboard journal lightbulb icon */
+@keyframes journal-bulb-turn-on-glow {
+  0%, 6% { opacity: 0.12; transform: scale(0.88); }
+  18%, 72% { opacity: 1; transform: scale(1.06); }
+  88%, 100% { opacity: 0.2; transform: scale(0.94); }
+}
+
+@keyframes journal-bulb-turn-on-inner {
+  0%, 6% { opacity: 0.08; }
+  18%, 72% { opacity: 1; }
+  88%, 100% { opacity: 0.15; }
+}
+
+@keyframes journal-bulb-turn-on-filament {
+  0%, 6% { opacity: 0.12; filter: drop-shadow(0 0 0 transparent); }
+  18%, 72% {
+    opacity: 0.78;
+    filter: drop-shadow(0 0 8px rgba(255, 220, 150, 0.55));
+  }
+  88%, 100% { opacity: 0.15; filter: drop-shadow(0 0 0 transparent); }
+}
+
+@keyframes journal-bulb-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.journal-bulb-glow {
+  transform-origin: center center;
+  will-change: transform, opacity;
+  animation: journal-bulb-turn-on-glow 7s ease-in-out infinite;
+}
+
+.journal-bulb-group {
+  transform-origin: 32px 32px;
+  transform-box: fill-box;
+  will-change: transform;
+  animation: journal-bulb-float 8s ease-in-out infinite;
+}
+
+.journal-bulb-inner {
+  transform-origin: 32px 26px;
+  transform-box: fill-box;
+  will-change: opacity;
+  animation: journal-bulb-turn-on-inner 7s ease-in-out infinite;
+}
+
+.journal-bulb-filament {
+  transform-origin: 32px 26px;
+  transform-box: fill-box;
+  will-change: opacity, filter;
+  animation: journal-bulb-turn-on-filament 7s ease-in-out infinite;
+}
+
+.journal-bulb-shell {
+  will-change: opacity;
+  animation: journal-bulb-turn-on-inner 7s ease-in-out infinite;
+  animation-delay: -0.15s;
+}
+
+.journal-bulb-shell-mid {
+  will-change: opacity;
+  animation: journal-bulb-turn-on-inner 7s ease-in-out infinite;
+  animation-delay: -0.3s;
 }

@@ -33,11 +33,24 @@ create table public.daily_messages (
   unique(user_id, date)
 );
 
+create table public.journal_entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  content text not null,
+  entry_month date not null,
+  created_at timestamptz default now()
+);
+
+create index journal_entries_user_month_idx on public.journal_entries (user_id, entry_month desc);
+create index journal_entries_user_created_idx on public.journal_entries (user_id, created_at desc);
+
 -- Row level security
 alter table public.profiles enable row level security;
 alter table public.identity_factors enable row level security;
 alter table public.daily_messages enable row level security;
+alter table public.journal_entries enable row level security;
 
 create policy "Users manage own profile" on public.profiles for all using (auth.uid() = user_id);
 create policy "Users manage own factors" on public.identity_factors for all using (auth.uid() = user_id);
 create policy "Users manage own messages" on public.daily_messages for all using (auth.uid() = user_id);
+create policy "Users manage own journal entries" on public.journal_entries for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);

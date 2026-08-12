@@ -13,6 +13,8 @@ import IkigaiChart from '@/components/discover/IkigaiChart'
 import TarotMiniCard from '@/components/discover/TarotMiniCard'
 import Logo from '@/components/Logo'
 import BreathworkOrb from '@/components/BreathworkOrb'
+import VisualizationWaveIcon from '@/components/VisualizationWaveIcon'
+import JournalWritingIcon from '@/components/JournalWritingIcon'
 
 interface Props {
   profile: UserProfile
@@ -104,7 +106,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
           )}
         </motion.section>
 
-        <nav className="flex justify-center -mt-2">
+        <nav className="flex justify-center gap-10 -mt-2 flex-wrap">
           <Link
             href="/tools/breathwork"
             className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
@@ -118,6 +120,36 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
               style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
             >
               Breathwork
+            </span>
+          </Link>
+          <Link
+            href="/tools/visualizations"
+            className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
+            aria-label="Open visualization tools"
+          >
+            <span className="pointer-events-none">
+              <VisualizationWaveIcon size={64} variant="default" animated />
+            </span>
+            <span
+              className="pointer-events-none text-xs font-medium tracking-widest uppercase group-hover:opacity-80"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
+            >
+              Visualizations
+            </span>
+          </Link>
+          <Link
+            href="/tools/journal"
+            className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
+            aria-label="Open journal tools"
+          >
+            <span className="pointer-events-none">
+              <JournalWritingIcon size={64} variant="default" animated />
+            </span>
+            <span
+              className="pointer-events-none text-xs font-medium tracking-widest uppercase group-hover:opacity-80"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
+            >
+              Journal
             </span>
           </Link>
         </nav>
