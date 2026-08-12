@@ -21,21 +21,11 @@ export default async function DashboardPage() {
     .select('*')
     .eq('user_id', user.id)
 
-  const today = new Date().toISOString().split('T')[0]
-  const { data: dailyMessage } = await supabase
-    .from('daily_messages')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('date', today)
-    .single()
-
-  const hasDailyMessage = !!(dailyMessage?.insight && dailyMessage?.mantra)
-
   return (
     <DashboardClient
       profile={profile}
       factors={factors ?? []}
-      dailyMessage={hasDailyMessage ? dailyMessage : null}
+      dailyMessage={null}
       userId={user.id}
     />
   )

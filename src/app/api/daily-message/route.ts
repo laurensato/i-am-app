@@ -9,7 +9,7 @@ import {
   mergeWesternAstrologyEvents,
   resolveTimeZone,
 } from '@/lib/astrologicalEvents'
-import { localDateKey, localDateLabel, localWeekday, addLocalDays } from '@/lib/localDate'
+import { localDateKey, localDateLabel, localWeekday, addLocalDays, formatTodayForPrompt, insightMentionsOtherWeekday } from '@/lib/localDate'
 import { isWesternAstrologyReading, parseWesternAstrologyReading, type WesternAstrologyEvent } from '@/lib/structuredReading'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, dangerouslyAllowBrowser: true })
@@ -23,6 +23,7 @@ type TarotSnapshots = Partial<Record<SnapshotKind, string>> & {
   /** Which daily single-card draw the dashboard summary reflects, or "none". */
   dashboard_summary_tarot_key?: string
   dashboard_summary_version?: string
+  dashboard_summary_date?: string
 }
 
 type FactorSnapshots = Record<string, TarotSnapshots | Partial<Record<SnapshotKind, string>>>
@@ -184,7 +185,7 @@ function readDailyTarotSnapshots(snapshots: TarotSnapshots | undefined) {
   return null
 }
 
-const DASHBOARD_SUMMARY_VERSION = '2'
+const DASHBOARD_SUMMARY_VERSION = '3'
 
 function normalizedTarotSummaryKey(key: string | null | undefined): string {
   return key ?? 'none'
@@ -205,13 +206,15 @@ function dailyTarotSummaryKey(snapshots: TarotSnapshots | undefined): string | n
 
 function isDashboardSummaryFresh(
   existing: { insight?: string | null; mantra?: string | null; factor_snapshots?: unknown },
-  todaySnapshots: FactorSnapshots
+  todaySnapshots: FactorSnapshots,
+  today: string,
 ): boolean {
   if (!existing.insight || !existing.mantra) return false
 
   const snapshots = (existing.factor_snapshots ?? {}) as FactorSnapshots
   const tarotMeta = snapshots.tarot as TarotSnapshots | undefined
   if (tarotMeta?.dashboard_summary_version !== DASHBOARD_SUMMARY_VERSION) return false
+  if (tarotMeta?.dashboard_summary_date !== today) return false
 
   const expectedTarotKey = normalizedTarotSummaryKey(dailyTarotSummaryKey(todaySnapshots.tarot as TarotSnapshots | undefined))
   const cachedTarotKey = normalizedTarotSummaryKey(tarotMeta?.dashboard_summary_tarot_key)
@@ -399,7 +402,7 @@ export async function POST(req: NextRequest) {
 
   const existingSnapshots = (existing?.factor_snapshots ?? {}) as FactorSnapshots
 
-  if (isDashboardSummaryFresh(existing ?? {}, existingSnapshots)) {
+  if (isDashboardSummaryFresh(existing ?? {}, existingSnapshots, today)) {
     return NextResponse.json({ insight: existing!.insight, mantra: existing!.mantra })
   }
 
@@ -470,18 +473,23 @@ export async function POST(req: NextRequest) {
 
   const factorSummary = factorSummaryParts.join('\n')
 
-  const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' })
-  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+  const now = new Date()
+  const { weekday: dayOfWeek, label: todayLabel } = formatTodayForPrompt(now, timeZone)
 
   const prompt = `You are a wise, warm, and grounding personal guide for someone navigating a meaningful life transition — often called a "midlife" moment. They are discovering themselves through multiple lenses of identity.
 
 Person: ${profileSummary}
-Today: ${dayOfWeek}, ${dateStr}
+
+DATE CHECK (must follow exactly):
+- The user's local timezone is ${timeZone}.
+- Today is ${dayOfWeek}, ${todayLabel} (calendar date ${today}).
+- This overview is ONLY for ${dayOfWeek}, ${todayLabel}. Do not treat any other day as "today."
+- Do not name any other weekday in the insight. If you mention the day, it must be ${dayOfWeek}.
 
 What we know about them:
 ${factorSummary || 'They are just beginning their journey of self-discovery.'}
 
-Generate a daily message for them. The insight should be 2-3 sentences — personal, reflective, and grounded in what we know about them. It should feel like it was written specifically for them, not generic.${profile?.first_name ? ` Address them by name — "${profile.first_name}" — at least once.` : ''} You have no record of what was said to them on any previous day, so write only about today — do not reference yesterday, an ongoing streak, or how their journey has been unfolding "lately." Ground the message in who they are (the identity factors above) and today's date, not in any implied history. Only mention tarot if a "Tarot today" line appears above — never invent or assume a tarot card.
+Generate a daily message for them. The insight should be 2-3 sentences — personal, reflective, and grounded in what we know about them. It should feel like it was written specifically for them, not generic.${profile?.first_name ? ` Address them by name — "${profile.first_name}" — at least once.` : ''} You have no record of what was said to them on any previous day, so write only about today — do not reference yesterday, an ongoing streak, or how their journey has been unfolding "lately." Ground the message in who they are (the identity factors above) and today's date (${dayOfWeek}, ${todayLabel}), not in any implied history. Only mention tarot if a "Tarot today" line appears above — never invent or assume a tarot card.
 
 The mantra should be 5-10 words that capture today's invitation to them. It should feel like something they could actually say to themselves.
 
@@ -493,17 +501,35 @@ Return JSON only:
 No markdown formatting of any kind — not in the JSON structure, and not inside any string values. Write all text as plain prose.`
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 512,
-      messages: [{ role: 'user', content: prompt }],
-    })
+    let insight = ''
+    let mantra = ''
 
-    const block = response.content[0]
-    if (block.type !== 'text') throw new Error('Unexpected response content type')
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const attemptPrompt = attempt === 0
+        ? prompt
+        : `${prompt}
 
-    const { insight, mantra } = JSON.parse(stripJsonFence(block.text))
-    if (!insight || !mantra) throw new Error('Model returned incomplete daily message')
+CORRECTION: Your previous draft named the wrong day of the week. Today is definitely ${dayOfWeek}, ${todayLabel} (${today}) in ${timeZone}. Regenerate without naming any weekday other than ${dayOfWeek}.`
+
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 512,
+        messages: [{ role: 'user', content: attemptPrompt }],
+      })
+
+      const block = response.content[0]
+      if (block.type !== 'text') throw new Error('Unexpected response content type')
+
+      const parsed = JSON.parse(stripJsonFence(block.text)) as { insight?: string; mantra?: string }
+      insight = parsed.insight?.trim() ?? ''
+      mantra = parsed.mantra?.trim() ?? ''
+      if (!insight || !mantra) throw new Error('Model returned incomplete daily message')
+
+      if (!insightMentionsOtherWeekday(insight, dayOfWeek)) break
+      if (attempt === 1) {
+        throw new Error('Model returned insight with wrong weekday')
+      }
+    }
 
     const tarotKey = dailyTarotSummaryKey(todaySnapshots.tarot as TarotSnapshots | undefined)
     const nextSnapshots: FactorSnapshots = {
@@ -511,6 +537,7 @@ No markdown formatting of any kind — not in the JSON structure, and not inside
       tarot: {
         ...(todaySnapshots.tarot as TarotSnapshots | undefined),
         dashboard_summary_version: DASHBOARD_SUMMARY_VERSION,
+        dashboard_summary_date: today,
         dashboard_summary_tarot_key: normalizedTarotSummaryKey(tarotKey),
       },
     }

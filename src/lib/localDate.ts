@@ -75,3 +75,31 @@ export function weekStartKey(date: Date, timeZone: string): string {
   }
   return localDateKey(date, timeZone)
 }
+
+const WEEKDAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const
+
+/** True when prose explicitly names a weekday other than the correct one. */
+export function insightMentionsOtherWeekday(insight: string, correctWeekday: string): boolean {
+  return WEEKDAYS.some(
+    day => day !== correctWeekday && new RegExp(`\\b${day}\\b`, 'i').test(insight),
+  )
+}
+
+export function formatTodayForPrompt(date: Date, timeZone: string): {
+  dateKey: string
+  weekday: string
+  label: string
+} {
+  const dateKey = localDateKey(date, timeZone)
+  const weekday = localWeekday(date, timeZone)
+  const label = localDateLabel(date, timeZone)
+  return { dateKey, weekday, label }
+}

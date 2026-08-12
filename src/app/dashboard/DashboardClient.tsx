@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect, useRef, createElement } from 'react'
+import { useState, useEffect, useRef, createElement, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Sun, Moon, ArrowUp, ArrowRight, CaretDown } from '@phosphor-icons/react'
 import { FactorType, FACTOR_META, IdentityFactor, UserProfile } from '@/lib/types'
+import { readingDateLabel, userTimezone } from '@/lib/journalReading'
 import { getZodiacAnimalIcon, getZodiacElementIcon } from '@/lib/zodiacIcons'
 import FactorIcon from '@/components/FactorIcon'
 import RotatingBackground from '@/components/RotatingBackground'
@@ -38,7 +39,11 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
   async function fetchDailyMessage() {
     setLoadingMessage(true)
     try {
-      const res = await fetch('/api/daily-message', { method: 'POST' })
+      const res = await fetch('/api/daily-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timezone: userTimezone() }),
+      })
       if (!res.ok) throw new Error('Failed to load daily message')
       const data = await res.json()
       setDailyMessage(data)
@@ -56,7 +61,7 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
 
   const activeFactors = factors.filter(f => f.is_active)
   const completedFactors = activeFactors.filter(f => isFactorReady(f))
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const today = readingDateLabel()
 
   return (
     <main className="min-h-screen pb-20" style={{ backgroundColor: 'var(--cream)' }}>
@@ -119,67 +124,23 @@ export default function DashboardClient({ profile, factors, dailyMessage: initia
           )}
         </motion.section>
 
-        <nav className="flex justify-center gap-10 -mt-2 flex-wrap">
-          <Link
-            href="/tools/rituals"
-            className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
-            aria-label="Open rituals"
-          >
-            <span className="pointer-events-none">
-              <RitualSunriseIcon size={64} variant="default" animated />
-            </span>
-            <span
-              className="pointer-events-none text-xs font-medium tracking-widest uppercase group-hover:opacity-80"
-              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
-            >
-              Rituals
-            </span>
-          </Link>
-          <Link
-            href="/tools/breathwork"
-            className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
-            aria-label="Open breathwork tools"
-          >
-            <span className="pointer-events-none">
-              <BreathworkOrb size={64} variant="default" animated />
-            </span>
-            <span
-              className="pointer-events-none text-xs font-medium tracking-widest uppercase group-hover:opacity-80"
-              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
-            >
-              Breathwork
-            </span>
-          </Link>
-          <Link
+        <nav className="-mt-2 flex w-full max-w-full flex-nowrap items-start justify-between gap-1 sm:justify-center sm:gap-10">
+          <DashboardToolLink href="/tools/rituals" label="Rituals" ariaLabel="Open rituals">
+            <RitualSunriseIcon size={64} variant="default" animated />
+          </DashboardToolLink>
+          <DashboardToolLink href="/tools/breathwork" label="Breathwork" ariaLabel="Open breathwork tools">
+            <BreathworkOrb size={64} variant="default" animated />
+          </DashboardToolLink>
+          <DashboardToolLink
             href="/tools/visualizations"
-            className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
-            aria-label="Open visualization tools"
+            label="Visualizations"
+            ariaLabel="Open visualization tools"
           >
-            <span className="pointer-events-none">
-              <VisualizationWaveIcon size={64} variant="default" animated />
-            </span>
-            <span
-              className="pointer-events-none text-xs font-medium tracking-widest uppercase group-hover:opacity-80"
-              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
-            >
-              Visualizations
-            </span>
-          </Link>
-          <Link
-            href="/tools/journal"
-            className="group flex flex-col items-center gap-2 rounded-full cursor-pointer transition-opacity hover:opacity-80"
-            aria-label="Open journal tools"
-          >
-            <span className="pointer-events-none">
-              <JournalWritingIcon size={64} variant="default" animated />
-            </span>
-            <span
-              className="pointer-events-none text-xs font-medium tracking-widest uppercase group-hover:opacity-80"
-              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
-            >
-              Journal
-            </span>
-          </Link>
+            <VisualizationWaveIcon size={64} variant="default" animated />
+          </DashboardToolLink>
+          <DashboardToolLink href="/tools/journal" label="Journal" ariaLabel="Open journal tools">
+            <JournalWritingIcon size={64} variant="default" animated />
+          </DashboardToolLink>
         </nav>
 
         {/* Identity factor cards */}
@@ -738,6 +699,38 @@ function SpiritualityCardSummary({ results }: { results: { traditions?: string[]
         )}
       </div>
     </div>
+  )
+}
+
+function DashboardToolLink({
+  href,
+  label,
+  ariaLabel,
+  children,
+}: {
+  href: string
+  label: string
+  ariaLabel: string
+  children: ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1 transition-opacity hover:opacity-80 sm:flex-none sm:gap-2"
+      aria-label={ariaLabel}
+    >
+      <span className="pointer-events-none relative h-11 w-11 shrink-0 sm:h-16 sm:w-16">
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 origin-center scale-[0.6875] sm:scale-100">
+          {children}
+        </span>
+      </span>
+      <span
+        className="pointer-events-none max-w-[4.75rem] text-center text-[9px] font-medium uppercase leading-tight tracking-wide sm:max-w-none sm:text-xs sm:tracking-widest group-hover:opacity-80"
+        style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}
+      >
+        {label}
+      </span>
+    </Link>
   )
 }
 
