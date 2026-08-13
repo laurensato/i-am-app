@@ -12,7 +12,7 @@ export default async function RitualsToolsPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id')
+    .select('first_name, age, gender')
     .eq('user_id', user.id)
     .single()
 
@@ -40,7 +40,7 @@ export default async function RitualsToolsPage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-6 py-10">
-        <RitualsClient factors={factors ?? []} userId={user.id} />
+        <RitualsClient factors={factors ?? []} userId={user.id} profile={profile} />
       </div>
     </main>
   )

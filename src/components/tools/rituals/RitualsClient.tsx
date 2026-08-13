@@ -3,6 +3,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import RitualStepCard, { RitualInsertSlot } from '@/components/tools/rituals/RitualStepCard'
 import EtherealProgressBar from '@/components/tools/rituals/EtherealProgressBar'
+import { RitualBeginButton } from '@/components/tools/rituals/RitualRunnerControls'
+import RitualRunnerModal from '@/components/tools/rituals/RitualRunnerModal'
 import {
   getAllRitualLibrarySteps,
   getDefaultRitualStepIds,
@@ -25,9 +27,10 @@ import type { IdentityFactor } from '@/lib/types'
 type Props = {
   factors: IdentityFactor[]
   userId: string
+  profile: { first_name: string; age: number; gender: string } | null
 }
 
-export default function RitualsClient({ factors, userId }: Props) {
+export default function RitualsClient({ factors, userId, profile }: Props) {
   const librarySteps = useMemo(() => getAllRitualLibrarySteps(), [])
 
   // SSR-safe defaults — localStorage is loaded after mount to avoid hydration mismatch.
@@ -65,6 +68,8 @@ export default function RitualsClient({ factors, userId }: Props) {
   const dragPayloadRef = useRef<RitualDragPayload | null>(null)
   const dropIndexRef = useRef<number | null>(null)
   const dropHandledRef = useRef(false)
+
+  const [runnerOpen, setRunnerOpen] = useState(false)
 
   function setDropIndex(index: number | null) {
     dropIndexRef.current = index
@@ -180,6 +185,26 @@ export default function RitualsClient({ factors, userId }: Props) {
     persistLayout(insertRitualStep(ritualStepIds, stepId, ritualStepIds.length))
   }
 
+  function markStepComplete(stepId: RitualStepId) {
+    const dateKey = todayDateKey()
+    setCompleted(current => {
+      if (current.has(stepId)) return current
+      const next = new Set(current)
+      next.add(stepId)
+      setRitualStepComplete(userId, stepId, true, dateKey)
+      return next
+    })
+  }
+
+  function beginRitual() {
+    if (activeSteps.length === 0) return
+    setRunnerOpen(true)
+  }
+
+  function closeRunner() {
+    setRunnerOpen(false)
+  }
+
   function toggleStep(stepId: RitualStepId) {
     const dateKey = todayDateKey()
     setCompleted(current => {
@@ -196,7 +221,6 @@ export default function RitualsClient({ factors, userId }: Props) {
   }
 
   const completedCount = activeSteps.filter(step => completed.has(step.id)).length
-  const allComplete = activeSteps.length > 0 && completedCount === activeSteps.length
 
   return (
     <div className="flex flex-col gap-8">
@@ -211,26 +235,12 @@ export default function RitualsClient({ factors, userId }: Props) {
           className="text-sm font-light leading-relaxed max-w-xl"
           style={{ color: 'var(--text-muted)' }}
         >
-          Swipe through today&apos;s steps, then drag in anything else you want from the library below.
-          Drag a card to reorder your ritual — your order is saved automatically.
+          Tap Begin to move through today&apos;s steps in a guided flow, or swipe the carousel to browse.
+          Drag cards to reorder your ritual — your order is saved automatically.
         </p>
       </div>
 
       <EtherealProgressBar completed={completedCount} total={activeSteps.length} />
-
-      {allComplete && (
-        <p
-          className="text-sm font-light text-center px-4 py-3 border"
-          style={{
-            borderColor: 'var(--parchment)',
-            backgroundColor: 'color-mix(in srgb, var(--warm-white) 88%, var(--parchment))',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-serif)',
-          }}
-        >
-          You&apos;ve moved through today&apos;s ritual. However the day unfolds, you showed up for yourself.
-        </p>
-      )}
 
       <section aria-label="Your ritual steps">
         {activeSteps.length === 0 ? (
@@ -258,7 +268,7 @@ export default function RitualsClient({ factors, userId }: Props) {
           </div>
         ) : (
           <div
-            className={`-mx-6 px-6 flex overflow-x-auto snap-x snap-mandatory pb-4 scroll-px-6 items-center${
+            className={`-mx-2 px-2 flex overflow-x-auto snap-x snap-mandatory pb-4 scroll-px-2 items-center${
               draggingId === null ? ' gap-3' : ''
             }`}
             style={{ scrollbarWidth: 'thin' }}
@@ -276,6 +286,8 @@ export default function RitualsClient({ factors, userId }: Props) {
               if (event.currentTarget === event.target) setDropIndex(null)
             }}
           >
+            <RitualBeginButton onClick={beginRitual} disabled={draggingId !== null} />
+
             {activeSteps.map((step, index) => (
               <Fragment key={step.id}>
                 {draggingId !== null && renderInsertSlot(index)}
@@ -297,6 +309,16 @@ export default function RitualsClient({ factors, userId }: Props) {
           </div>
         )}
       </section>
+
+      <RitualRunnerModal
+        open={runnerOpen}
+        onClose={closeRunner}
+        steps={activeSteps}
+        factors={factors}
+        userId={userId}
+        profile={profile}
+        onStepComplete={markStepComplete}
+      />
 
       <section aria-label="Add ritual steps">
         <div className="flex flex-col gap-3">

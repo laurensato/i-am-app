@@ -803,14 +803,24 @@ async function generateTarotReading(
   const spread = (results as { spread?: TarotSpread }).spread ?? (cards.length === 1 ? 'single' : 'three')
   const cardList = cards.map(c => `${c.position}: ${c.name}${c.reversed ? ' (reversed)' : ''}`).join('\n')
 
-  const fallback = () => JSON.stringify({
-    cards: cards.map(c => ({ position: c.position, reflection: `The energy of ${c.name} is still unfolding — sit with what it stirred in you.` })),
-    summary: spread === 'single'
-      ? 'Your card holds a message for today. Sit with what it stirred in you.'
-      : spread === 'weekly'
-      ? 'Your weekly spread holds a message for the days ahead. Sit with what each card stirred in you.'
-      : 'Your cards spoke. Their message is still alive. What has unfolded since you drew them?',
-  })
+  const fallback = () => JSON.stringify(
+    spread === 'single'
+      ? {
+          card_meaning: cards[0]
+            ? `The ${cards[0].name}${cards[0].reversed ? ' reversed' : ''} often speaks to themes still unfolding — sit with what it stirred in you today.`
+            : 'Your card holds traditional meanings worth sitting with today.',
+          summary: 'Your card holds a message for today. Sit with what it stirred in you.',
+        }
+      : {
+          cards: cards.map(c => ({
+            position: c.position,
+            reflection: `The energy of ${c.name} is still unfolding — sit with what it stirred in you.`,
+          })),
+          summary: spread === 'weekly'
+            ? 'Your weekly spread holds a message for the days ahead. Sit with what each card stirred in you.'
+            : 'Your cards spoke. Their message is still alive. What has unfolded since you drew them?',
+        },
+  )
 
   if (!cards.length) return fallback()
 
@@ -818,13 +828,13 @@ async function generateTarotReading(
     ? `You are a tarot reader. Today is ${dayOfWeek}. This card was drawn for today:
 ${cardList}
 
-Write a 2-3 sentence reflection that names what this card traditionally means and how that meaning might be showing up for them today. Reflective, not predictive.${personalization}
+First write 2-3 sentences describing what this card traditionally means — upright or reversed, as drawn — in plain, accessible language.
 
-Then write a separate 2-3 sentence summary that deepens the message of this single card as their reading for today.
+Then write a separate 2-3 sentence reading that applies that meaning to today for them. Reflective, not predictive.${personalization}
 
 Return JSON only, in this exact shape:
 {
-  "cards": [{ "position": "Today", "reflection": "..." }],
+  "card_meaning": "...",
   "summary": "..."
 }
 No markdown formatting of any kind — not in the JSON structure, and not inside any string values. Write all text as plain prose.`
@@ -867,7 +877,19 @@ No markdown formatting of any kind — not in the JSON structure, and not inside
     const block = response.content[0]
     if (block.type !== 'text') throw new Error('Unexpected response content type')
 
-    const parsed = JSON.parse(stripJsonFence(block.text)) as { cards?: { position: string; reflection: string }[]; summary?: string }
+    const parsed = JSON.parse(stripJsonFence(block.text)) as {
+      cards?: { position: string; reflection: string }[]
+      card_meaning?: string
+      summary?: string
+    }
+
+    if (spread === 'single') {
+      const cardMeaning = parsed.card_meaning?.trim()
+      const summary = parsed.summary?.trim()
+      if (!cardMeaning || !summary) throw new Error('Model returned incomplete tarot reading')
+      return JSON.stringify({ card_meaning: cardMeaning, summary })
+    }
+
     if (!parsed.summary || !parsed.cards?.length) throw new Error('Model returned incomplete tarot reading')
 
     return JSON.stringify(parsed)

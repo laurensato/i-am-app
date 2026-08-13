@@ -441,3 +441,51 @@ body {
   );
   animation: ritual-progress-shimmer 3.8s ease-in-out infinite;
 }
+
+/* Ritual runner step glow */
+.ritual-runner-step-glow {
+  animation: ritual-runner-step-glow 4s ease-in-out infinite;
+}
+
+@keyframes ritual-runner-step-glow {
+  0%, 100% {
+    box-shadow:
+      0 8px 28px color-mix(in srgb, var(--text-primary) 7%, transparent),
+      0 0 0 0 color-mix(in srgb, rgba(255, 210, 130, 0.35) 0%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 12px 36px color-mix(in srgb, var(--text-primary) 10%, transparent),
+      0 0 32px color-mix(in srgb, rgba(160, 190, 225, 0.22) 100%, transparent);
+  }
+}
+
+/* Ritual completion celebration */
+.ritual-celebration-panel {
+  animation: ritual-celebration-panel-glow 5s ease-in-out infinite;
+}
+
+@keyframes ritual-celebration-panel-glow {
+  0%, 100% {
+    box-shadow:
+      0 24px 64px color-mix(in srgb, var(--text-primary) 18%, transparent),
+      0 0 0 0 rgba(255, 210, 130, 0);
+  }
+  50% {
+    box-shadow:
+      0 28px 72px color-mix(in srgb, var(--text-primary) 22%, transparent),
+      0 0 48px rgba(255, 210, 130, 0.2);
+  }
+}
+
+.ritual-celebration-rays {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 228, 170, 0.28) 0%, transparent 52%),
+    radial-gradient(circle at 50% 100%, rgba(160, 190, 225, 0.14) 0%, transparent 58%);
+  animation: ritual-celebration-rays 6s ease-in-out infinite;
+}
+
+@keyframes ritual-celebration-rays {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}

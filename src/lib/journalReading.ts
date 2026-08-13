@@ -1,5 +1,11 @@
 import { dateKeyToNoonUtc } from '@/lib/localDate'
 import { parseWesternAstrologyReading, type WesternAstrologyDailyReading } from '@/lib/structuredReading'
+import {
+  formatTarotDailyJournalBody,
+  formatTarotMultiJournalBody,
+  parseTarotDailyReading,
+  parseTarotMultiReading,
+} from '@/lib/tarotReading'
 import { FACTOR_META, type FactorType } from '@/lib/types'
 
 export type ReadingPeriod = 'daily' | 'weekly'
@@ -98,25 +104,6 @@ function formatWesternAstrologyBody(reading: WesternAstrologyDailyReading): stri
   return sections.join('\n')
 }
 
-function parseTarotReadingContent(content: string): StructuredReading | null {
-  try {
-    const parsed = JSON.parse(content)
-    if (parsed?.summary && Array.isArray(parsed?.cards)) {
-      return {
-        headline: parsed.headline,
-        items: parsed.cards.map((card: { position: string; reflection: string }) => ({
-          label: card.position,
-          reflection: card.reflection,
-        })),
-        summary: parsed.summary,
-      }
-    }
-  } catch {
-    // not JSON
-  }
-  return null
-}
-
 function formatCardsSection(cards: TarotReadingCard[]): string {
   const lines = cards.map(
     card => `${card.name}${card.reversed ? ' (Reversed)' : ''} — ${card.position}`,
@@ -150,8 +137,15 @@ export function formatTarotJournalReading(
 ): string {
   const header = formatJournalHeader(FACTOR_META.tarot.label, period, dateLabel)
   const cardsSection = cards.length ? formatCardsSection(cards) : ''
-  const parsed = parseTarotReadingContent(rawContent)
-  const body = parsed ? formatStructuredBody(parsed) : rawContent.trim()
+
+  if (period === 'daily') {
+    const daily = parseTarotDailyReading(rawContent)
+    const body = daily ? formatTarotDailyJournalBody(daily) : rawContent.trim()
+    return `${header}\n\n${cardsSection}${body}`
+  }
+
+  const parsed = parseTarotMultiReading(rawContent)
+  const body = parsed ? formatTarotMultiJournalBody(parsed) : rawContent.trim()
 
   return `${header}\n\n${cardsSection}${body}`
 }

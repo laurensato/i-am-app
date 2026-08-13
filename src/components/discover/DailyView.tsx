@@ -1,13 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import Image from 'next/image'
 import { Sun, Moon, ArrowUp, YinYang, Sparkle } from '@phosphor-icons/react'
 import { FactorType, FACTOR_META, IdentityFactor } from '@/lib/types'
 import { dateKeyToNoonUtc, addLocalDays } from '@/lib/localDate'
 import { NatalChart } from '@/lib/natalChart'
 import { createClient } from '@/lib/supabase/client'
-import { getTarotCardImage } from '@/lib/tarotImages'
+import TarotCardReveal from '@/components/tarot/TarotCardReveal'
 import FactorIcon from '@/components/FactorIcon'
 import NatalChartWheel, { AspectsTable } from './NatalChart'
 import IkigaiChart from './IkigaiChart'
@@ -26,6 +25,7 @@ import {
   readingStorageKey,
   todayDateKey,
 } from '@/lib/journalReading'
+import { parseTarotDailyReading, parseTarotMultiReading } from '@/lib/tarotReading'
 
 type TarotCard = { name: string; position: string; reversed?: boolean }
 
@@ -538,73 +538,6 @@ function TarotWeeklySection({ factorRow, profile, userId, factors }: {
   )
 }
 
-function TarotCardReveal({ cards, revealed, onReveal }: {
-  cards: TarotCard[]
-  revealed: Set<number>
-  onReveal: (i: number) => void
-}) {
-  return (
-    <div className="flex justify-center gap-4">
-      {cards.map((c, i) => {
-        const isRevealed = revealed.has(i)
-        const img = getTarotCardImage(c.name)
-        return (
-          <div key={`${c.position}-${i}`} className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => !isRevealed && onReveal(i)}
-              disabled={isRevealed}
-              aria-label={isRevealed ? c.name : `Reveal ${c.position} card`}
-              style={{ width: 96, height: 168, perspective: 800, cursor: isRevealed ? 'default' : 'pointer' }}
-            >
-              <motion.div
-                className="relative w-full h-full"
-                style={{ transformStyle: 'preserve-3d' }}
-                animate={{ rotateY: isRevealed ? 180 : 0 }}
-                transition={{ duration: 0.6, ease: 'easeInOut' }}
-                whileHover={!isRevealed ? { scale: 1.04 } : {}}
-                whileTap={!isRevealed ? { scale: 0.97 } : {}}
-              >
-                {/* Card back */}
-                <div className="absolute inset-0 rounded-xl flex items-center justify-center"
-                  style={{
-                    backfaceVisibility: 'hidden',
-                    backgroundColor: 'var(--sol-navy)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                  }}>
-                  <Sparkle size={28} weight="thin" color="rgba(255,255,255,0.4)" />
-                </div>
-
-                {/* Card face — no rounding; RWS artwork includes its own border */}
-                <div className="absolute inset-0"
-                  style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                  {img ? (
-                    <Image src={img} alt={c.name} fill sizes="96px" className="object-contain"
-                      style={{ transform: c.reversed ? 'rotate(180deg)' : 'none' }} />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-center p-2"
-                      style={{ backgroundColor: 'var(--parchment)' }}>
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{c.name}</span>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </button>
-            <div className="text-center">
-              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{c.position}</p>
-              {isRevealed && (
-                <p className="text-xs font-normal mt-0.5" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>
-                  {c.name}{c.reversed ? ' (Reversed)' : ''}
-                </p>
-              )}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 function InsightCardActions({
   userId,
   stepId,
@@ -688,21 +621,55 @@ function parseStructuredReading(
 }
 
 function parseTarotReading(content: string): StructuredDailyReading | null {
-  try {
-    const parsed = JSON.parse(content)
-    if (parsed?.summary && Array.isArray(parsed?.cards)) {
-      return {
-        items: parsed.cards.map((c: { position: string; reflection: string }) => ({
-          label: c.position,
-          reflection: c.reflection,
-        })),
-        summary: parsed.summary,
-      }
-    }
-  } catch {
-    // not JSON — fall through to raw-text rendering
+  const reading = parseTarotMultiReading(content)
+  if (!reading) return null
+  return {
+    headline: reading.headline,
+    items: reading.items,
+    summary: reading.summary,
   }
-  return null
+}
+
+function TarotSingleDailyInsight({
+  loading,
+  content,
+  label = "Today's Card",
+  journalSave,
+  ritualSave,
+}: {
+  loading: boolean
+  content: string
+  label?: string
+  journalSave?: { userId: string; storageKey: string; content: string }
+  ritualSave?: { userId: string; stepId: RitualStepId; factors: IdentityFactor[] }
+}) {
+  const reading = !loading ? parseTarotDailyReading(content) : null
+
+  if (loading) return <InsightBreathworkCard />
+
+  return (
+    <div className="relative p-6 pb-14 pr-14" style={{ backgroundColor: 'var(--sol-navy)' }}>
+      <p className="text-xs text-white opacity-60 mb-3 tracking-widest uppercase">{label}</p>
+      {reading ? (
+        <div className="flex flex-col gap-4">
+          <p className="text-white font-light leading-relaxed">{reading.cardMeaning}</p>
+          <p className="text-white font-light leading-relaxed pt-4 border-t border-white border-opacity-20">
+            {reading.summary}
+          </p>
+        </div>
+      ) : (
+        <p className="text-white font-light leading-relaxed">{content}</p>
+      )}
+      {ritualSave && (
+        <InsightCardActions
+          userId={ritualSave.userId}
+          stepId={ritualSave.stepId}
+          factors={ritualSave.factors}
+          journalSave={journalSave}
+        />
+      )}
+    </div>
+  )
 }
 
 function StructuredDailyInsight({
@@ -780,10 +747,9 @@ function TarotDailyInsight({
   const storageKey = readingStorageKey(userId, 'tarot', 'daily', todayDateKey())
 
   return (
-    <StructuredDailyInsight
+    <TarotSingleDailyInsight
       loading={loading}
       content={content}
-      parse={parseTarotReading}
       journalSave={
         !loading && content ? { userId, storageKey, content: journalContent } : undefined
       }
