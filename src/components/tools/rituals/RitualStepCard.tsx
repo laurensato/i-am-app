@@ -19,6 +19,8 @@ type CarouselProps = BaseProps & {
   onToggle: () => void
   onDragStart: (stepId: RitualStepId) => void
   onDragEnd: () => void
+  onDragHandlePointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void
+  dragSessionActive?: boolean
 }
 
 type LibraryProps = BaseProps & {
@@ -27,6 +29,8 @@ type LibraryProps = BaseProps & {
   onAdd: () => void
   onDragStart: (stepId: RitualStepId) => void
   onDragEnd: () => void
+  onDragHandlePointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void
+  dragSessionActive?: boolean
 }
 
 type Props = CarouselProps | LibraryProps
@@ -65,35 +69,60 @@ export default function RitualStepCard(props: Props) {
     }
 
     return (
-      <button
-        type="button"
-        draggable={!disabled}
-        disabled={disabled}
-        onClick={() => {
-          if (!disabled) props.onAdd()
-        }}
-        onDragStart={event => {
-          if (disabled) {
-            event.preventDefault()
-            return
+      <div className="relative shrink-0" style={{ width: RITUAL_CARD_SIZE_PX, height: RITUAL_CARD_SIZE_PX }}>
+        <button
+          type="button"
+          draggable={!disabled}
+          disabled={disabled}
+          onClick={() => {
+            if (disabled || props.dragSessionActive) return
+            props.onAdd()
+          }}
+          onDragStart={event => {
+            if (disabled) {
+              event.preventDefault()
+              return
+            }
+            writeRitualDragPayload(event.dataTransfer, { stepId: step.id, source: 'library' })
+            props.onDragStart(step.id)
+          }}
+          onDragEnd={props.onDragEnd}
+          className="relative flex flex-col items-center justify-center gap-2 p-3 border transition-all disabled:cursor-not-allowed w-full h-full"
+          style={{
+            ...cardStyle,
+            cursor: disabled ? 'not-allowed' : 'grab',
+          }}
+          aria-label={
+            disabled
+              ? `${step.label} — already in your ritual or unavailable`
+              : `Add ${step.label} to your ritual`
           }
-          writeRitualDragPayload(event.dataTransfer, { stepId: step.id, source: 'library' })
-          props.onDragStart(step.id)
-        }}
-        onDragEnd={props.onDragEnd}
-        className="relative shrink-0 flex flex-col items-center justify-center gap-2 p-3 border transition-all disabled:cursor-not-allowed"
-        style={{
-          ...cardStyle,
-          cursor: disabled ? 'not-allowed' : 'grab',
-        }}
-        aria-label={
-          disabled
-            ? `${step.label} — already in your ritual or unavailable`
-            : `Add ${step.label} to your ritual`
-        }
-      >
-        {cardBody}
-      </button>
+        >
+          {cardBody}
+        </button>
+
+        {!disabled && props.onDragHandlePointerDown && (
+          <div
+            role="button"
+            tabIndex={-1}
+            aria-label={`Drag ${step.label} into your ritual`}
+            className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full"
+            style={{
+              width: 28,
+              height: 28,
+              touchAction: 'none',
+              backgroundColor: 'color-mix(in srgb, var(--parchment) 50%, var(--warm-white))',
+            }}
+            onPointerDown={event => {
+              event.preventDefault()
+              event.stopPropagation()
+              props.onDragHandlePointerDown?.(event)
+            }}
+          >
+            <DotsSixVertical size={14} weight="bold" style={{ color: 'var(--text-muted)' }} />
+          </div>
+        )}
+      </div>
     )
   }
 
@@ -125,7 +154,7 @@ export default function RitualStepCard(props: Props) {
         }, 0)
       }}
       onClick={event => {
-        if (draggedRef.current) return
+        if (draggedRef.current || props.dragSessionActive) return
         if (event.shiftKey) {
           event.preventDefault()
           props.onToggle()
@@ -149,15 +178,23 @@ export default function RitualStepCard(props: Props) {
       title={`Open ${step.label}. Shift-click to mark complete.`}
     >
       <div
-        className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full pointer-events-none"
+        role="button"
+        tabIndex={-1}
+        aria-label="Drag to reorder"
+        className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full"
         style={{
-          width: 22,
-          height: 22,
+          width: 28,
+          height: 28,
+          touchAction: 'none',
           backgroundColor: 'color-mix(in srgb, var(--parchment) 50%, var(--warm-white))',
         }}
-        aria-hidden
+        onPointerDown={event => {
+          event.preventDefault()
+          event.stopPropagation()
+          props.onDragHandlePointerDown?.(event)
+        }}
       >
-        <DotsSixVertical size={12} weight="bold" style={{ color: 'var(--text-muted)' }} />
+        <DotsSixVertical size={14} weight="bold" style={{ color: 'var(--text-muted)' }} />
       </div>
 
       {done && (
@@ -186,16 +223,19 @@ export function RitualInsertSlot({
   isActive,
   onDragOver,
   onDrop,
+  onPointerDragOver,
 }: {
   index: number
   isActive: boolean
   onDragOver: (index: number) => void
   onDrop: (index: number, dataTransfer: DataTransfer) => void
+  onPointerDragOver?: (index: number) => void
 }) {
   return (
     <div
+      data-ritual-insert-slot={index}
       className="snap-center shrink-0 flex items-center justify-center self-stretch relative"
-      style={{ width: 18, minHeight: RITUAL_CARD_SIZE_PX, zIndex: 20 }}
+      style={{ width: 28, minHeight: RITUAL_CARD_SIZE_PX, zIndex: 20, touchAction: 'none' }}
       onDragEnter={event => {
         event.preventDefault()
       }}
@@ -210,6 +250,7 @@ export function RitualInsertSlot({
         event.stopPropagation()
         onDrop(index, event.dataTransfer)
       }}
+      onPointerEnter={() => onPointerDragOver?.(index)}
       aria-hidden
     >
       <div

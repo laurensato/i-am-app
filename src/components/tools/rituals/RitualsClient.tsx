@@ -22,7 +22,22 @@ import {
   type RitualStepId,
 } from '@/lib/ritual'
 import { todayDateKey } from '@/lib/journalReading'
+import {
+  hasExceededDragThreshold,
+  resolveRitualDropIndex,
+} from '@/lib/ritualPointerDrag'
 import type { IdentityFactor } from '@/lib/types'
+
+function isPointInElement(clientX: number, clientY: number, element: HTMLElement | null): boolean {
+  if (!element) return false
+  const rect = element.getBoundingClientRect()
+  return (
+    clientX >= rect.left &&
+    clientX <= rect.right &&
+    clientY >= rect.top &&
+    clientY <= rect.bottom
+  )
+}
 
 type Props = {
   factors: IdentityFactor[]
@@ -70,6 +85,15 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
   const dropHandledRef = useRef(false)
 
   const [runnerOpen, setRunnerOpen] = useState(false)
+
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const libraryRef = useRef<HTMLDivElement>(null)
+  const pointerDragRef = useRef<{
+    pointerId: number
+    captureEl: HTMLElement
+    payload: RitualDragPayload
+    active: boolean
+  } | null>(null)
 
   function setDropIndex(index: number | null) {
     dropIndexRef.current = index
@@ -156,6 +180,78 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
     }, 0)
   }
 
+  function beginPointerDrag(payload: RitualDragPayload, event: React.PointerEvent<HTMLElement>) {
+    event.preventDefault()
+
+    const captureEl = event.currentTarget
+    captureEl.setPointerCapture(event.pointerId)
+
+    const pointerId = event.pointerId
+
+    pointerDragRef.current = {
+      pointerId,
+      captureEl,
+      payload,
+      active: false,
+    }
+
+    const startX = event.clientX
+    const startY = event.clientY
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const session = pointerDragRef.current
+      if (!session || moveEvent.pointerId !== pointerId) return
+
+      if (!session.active) {
+        if (!hasExceededDragThreshold(startX, startY, moveEvent.clientX, moveEvent.clientY)) {
+          return
+        }
+        session.active = true
+        startDrag(payload)
+      }
+
+      const index = resolveRitualDropIndex(moveEvent.clientX, carouselRef.current)
+      if (index !== null) setDropIndex(index)
+    }
+
+    const onPointerEnd = (endEvent: PointerEvent) => {
+      const session = pointerDragRef.current
+      if (!session || endEvent.pointerId !== pointerId) return
+
+      captureEl.releasePointerCapture(pointerId)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerEnd)
+      window.removeEventListener('pointercancel', onPointerEnd)
+      pointerDragRef.current = null
+
+      if (!session.active) return
+
+      const droppedOnLibrary = isPointInElement(
+        endEvent.clientX,
+        endEvent.clientY,
+        libraryRef.current,
+      )
+
+      if (session.payload.source === 'carousel' && droppedOnLibrary) {
+        dropHandledRef.current = true
+        setRitualStepIds(current => {
+          if (!current.includes(session.payload.stepId)) return current
+          const next = removeRitualStep(current, session.payload.stepId)
+          saveRitualLayout(userId, next)
+          return next
+        })
+        clearDragState()
+        return
+      }
+
+      finishDragSession()
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerEnd)
+    window.addEventListener('pointercancel', onPointerEnd)
+  }
+
   function renderInsertSlot(index: number) {
     return (
       <RitualInsertSlot
@@ -164,6 +260,7 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
         isActive={dropIndex === index}
         onDragOver={setDropIndex}
         onDrop={dropAtIndex}
+        onPointerDragOver={draggingId !== null ? setDropIndex : undefined}
       />
     )
   }
@@ -236,7 +333,7 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
           style={{ color: 'var(--text-muted)' }}
         >
           Tap Begin to move through today&apos;s steps in a guided flow, or swipe the carousel to browse.
-          Drag cards to reorder your ritual — your order is saved automatically.
+          Drag the handle on any card to reorder — works with touch and mouse.
         </p>
       </div>
 
@@ -268,10 +365,14 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
           </div>
         ) : (
           <div
+            ref={carouselRef}
             className={`-mx-2 px-2 flex overflow-x-auto snap-x snap-mandatory pb-4 scroll-px-2 items-center${
               draggingId === null ? ' gap-3' : ''
             }`}
-            style={{ scrollbarWidth: 'thin' }}
+            style={{
+              scrollbarWidth: 'thin',
+              touchAction: draggingId !== null ? 'none' : 'pan-x',
+            }}
             onDragOver={event => {
               if (draggingId === null) return
               event.preventDefault()
@@ -296,11 +397,15 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
                   step={step}
                   done={completed.has(step.id)}
                   isDragging={draggingId === step.id}
+                  dragSessionActive={draggingId !== null}
                   onToggle={() => toggleStep(step.id)}
                   onDragStart={stepId =>
                     startDrag({ stepId, source: 'carousel' })
                   }
                   onDragEnd={finishDragSession}
+                  onDragHandlePointerDown={event =>
+                    beginPointerDrag({ stepId: step.id, source: 'carousel' }, event)
+                  }
                 />
               </Fragment>
             ))}
@@ -330,12 +435,12 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
               Add to your ritual
             </p>
             <p className="text-xs font-light" style={{ color: 'var(--text-muted)' }}>
-              Drag a card into your ritual above, or tap to add it to the end. Drag a ritual step here
-              to remove it.
+              Drag the handle on any card to reorder — works with touch and mouse. Drop on the library below to remove a step.
             </p>
           </div>
 
           <div
+            ref={libraryRef}
             className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 justify-items-center py-4 px-1"
             onDragOver={event => {
               event.preventDefault()
@@ -358,10 +463,17 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
                   step={step}
                   disabled={disabled}
                   isDragging={draggingId === step.id}
+                  dragSessionActive={draggingId !== null}
                   onDragStart={stepId =>
                     startDrag({ stepId, source: 'library' })
                   }
                   onDragEnd={finishDragSession}
+                  onDragHandlePointerDown={
+                    disabled
+                      ? undefined
+                      : event =>
+                          beginPointerDrag({ stepId: step.id, source: 'library' }, event)
+                  }
                   onAdd={() => addStep(step.id)}
                 />
               )
