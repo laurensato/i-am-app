@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Check, DotsSixVertical } from '@phosphor-icons/react'
 import RitualStepIcon from '@/components/tools/rituals/RitualStepIcon'
 import { writeRitualDragPayload, type RitualStepDefinition, type RitualStepId } from '@/lib/ritual'
@@ -16,11 +15,9 @@ type BaseProps = {
 
 type CarouselProps = BaseProps & {
   variant: 'carousel'
-  onToggle: () => void
   onDragStart: (stepId: RitualStepId) => void
   onDragEnd: () => void
-  onDragHandlePointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void
-  dragSessionActive?: boolean
+  onPointerDragStart?: (event: React.PointerEvent<HTMLElement>) => void
 }
 
 type LibraryProps = BaseProps & {
@@ -29,7 +26,7 @@ type LibraryProps = BaseProps & {
   onAdd: () => void
   onDragStart: (stepId: RitualStepId) => void
   onDragEnd: () => void
-  onDragHandlePointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void
+  onPointerDragStart?: (event: React.PointerEvent<HTMLElement>) => void
   dragSessionActive?: boolean
 }
 
@@ -69,7 +66,15 @@ export default function RitualStepCard(props: Props) {
     }
 
     return (
-      <div className="relative shrink-0" style={{ width: RITUAL_CARD_SIZE_PX, height: RITUAL_CARD_SIZE_PX }}>
+      <div
+        className="relative shrink-0"
+        style={{ width: RITUAL_CARD_SIZE_PX, height: RITUAL_CARD_SIZE_PX }}
+        onPointerDown={
+          !disabled && props.onPointerDragStart
+            ? event => props.onPointerDragStart?.(event)
+            : undefined
+        }
+      >
         <button
           type="button"
           draggable={!disabled}
@@ -101,32 +106,23 @@ export default function RitualStepCard(props: Props) {
           {cardBody}
         </button>
 
-        {!disabled && props.onDragHandlePointerDown && (
+        {!disabled && (
           <div
-            role="button"
-            tabIndex={-1}
-            aria-label={`Drag ${step.label} into your ritual`}
-            className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full"
+            className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full pointer-events-none"
             style={{
-              width: 28,
-              height: 28,
-              touchAction: 'none',
+              width: 22,
+              height: 22,
               backgroundColor: 'color-mix(in srgb, var(--parchment) 50%, var(--warm-white))',
             }}
-            onPointerDown={event => {
-              event.preventDefault()
-              event.stopPropagation()
-              props.onDragHandlePointerDown?.(event)
-            }}
+            aria-hidden
           >
-            <DotsSixVertical size={14} weight="bold" style={{ color: 'var(--text-muted)' }} />
+            <DotsSixVertical size={12} weight="bold" style={{ color: 'var(--text-muted)' }} />
           </div>
         )}
       </div>
     )
   }
 
-  const router = useRouter()
   const draggedRef = useRef(false)
   const [allowDropThrough, setAllowDropThrough] = useState(false)
 
@@ -142,6 +138,7 @@ export default function RitualStepCard(props: Props) {
   return (
     <article
       draggable
+      onPointerDown={event => props.onPointerDragStart?.(event)}
       onDragStart={event => {
         draggedRef.current = true
         writeRitualDragPayload(event.dataTransfer, { stepId: step.id, source: 'carousel' })
@@ -152,15 +149,6 @@ export default function RitualStepCard(props: Props) {
         window.setTimeout(() => {
           draggedRef.current = false
         }, 0)
-      }}
-      onClick={event => {
-        if (draggedRef.current || props.dragSessionActive) return
-        if (event.shiftKey) {
-          event.preventDefault()
-          props.onToggle()
-          return
-        }
-        router.push(step.href)
       }}
       className="snap-center shrink-0 relative border transition-all cursor-grab active:cursor-grabbing select-none"
       style={{
@@ -175,26 +163,17 @@ export default function RitualStepCard(props: Props) {
         boxShadow: '0 4px 14px color-mix(in srgb, var(--text-primary) 5%, transparent)',
       }}
       aria-label={`${step.label}. Drag to reorder.`}
-      title={`Open ${step.label}. Shift-click to mark complete.`}
     >
       <div
-        role="button"
-        tabIndex={-1}
-        aria-label="Drag to reorder"
-        className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full"
+        className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full pointer-events-none"
         style={{
-          width: 28,
-          height: 28,
-          touchAction: 'none',
+          width: 22,
+          height: 22,
           backgroundColor: 'color-mix(in srgb, var(--parchment) 50%, var(--warm-white))',
         }}
-        onPointerDown={event => {
-          event.preventDefault()
-          event.stopPropagation()
-          props.onDragHandlePointerDown?.(event)
-        }}
+        aria-hidden
       >
-        <DotsSixVertical size={14} weight="bold" style={{ color: 'var(--text-muted)' }} />
+        <DotsSixVertical size={12} weight="bold" style={{ color: 'var(--text-muted)' }} />
       </div>
 
       {done && (

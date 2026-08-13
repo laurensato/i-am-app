@@ -181,11 +181,7 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
   }
 
   function beginPointerDrag(payload: RitualDragPayload, event: React.PointerEvent<HTMLElement>) {
-    event.preventDefault()
-
     const captureEl = event.currentTarget
-    captureEl.setPointerCapture(event.pointerId)
-
     const pointerId = event.pointerId
 
     pointerDragRef.current = {
@@ -207,9 +203,11 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
           return
         }
         session.active = true
+        captureEl.setPointerCapture(pointerId)
         startDrag(payload)
       }
 
+      moveEvent.preventDefault()
       const index = resolveRitualDropIndex(moveEvent.clientX, carouselRef.current)
       if (index !== null) setDropIndex(index)
     }
@@ -218,7 +216,9 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
       const session = pointerDragRef.current
       if (!session || endEvent.pointerId !== pointerId) return
 
-      captureEl.releasePointerCapture(pointerId)
+      if (captureEl.hasPointerCapture(pointerId)) {
+        captureEl.releasePointerCapture(pointerId)
+      }
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerEnd)
       window.removeEventListener('pointercancel', onPointerEnd)
@@ -302,21 +302,6 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
     setRunnerOpen(false)
   }
 
-  function toggleStep(stepId: RitualStepId) {
-    const dateKey = todayDateKey()
-    setCompleted(current => {
-      const next = new Set(current)
-      if (next.has(stepId)) {
-        next.delete(stepId)
-        setRitualStepComplete(userId, stepId, false, dateKey)
-      } else {
-        next.add(stepId)
-        setRitualStepComplete(userId, stepId, true, dateKey)
-      }
-      return next
-    })
-  }
-
   const completedCount = activeSteps.filter(step => completed.has(step.id)).length
 
   return (
@@ -333,7 +318,7 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
           style={{ color: 'var(--text-muted)' }}
         >
           Tap Begin to move through today&apos;s steps in a guided flow, or swipe the carousel to browse.
-          Drag the handle on any card to reorder — works with touch and mouse.
+          Drag cards to reorder your ritual — press and drag on touch, or grab with a mouse.
         </p>
       </div>
 
@@ -397,13 +382,11 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
                   step={step}
                   done={completed.has(step.id)}
                   isDragging={draggingId === step.id}
-                  dragSessionActive={draggingId !== null}
-                  onToggle={() => toggleStep(step.id)}
                   onDragStart={stepId =>
                     startDrag({ stepId, source: 'carousel' })
                   }
                   onDragEnd={finishDragSession}
-                  onDragHandlePointerDown={event =>
+                  onPointerDragStart={event =>
                     beginPointerDrag({ stepId: step.id, source: 'carousel' }, event)
                   }
                 />
@@ -435,7 +418,7 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
               Add to your ritual
             </p>
             <p className="text-xs font-light" style={{ color: 'var(--text-muted)' }}>
-              Drag the handle on any card to reorder — works with touch and mouse. Drop on the library below to remove a step.
+              Drop on the library below to remove a step.
             </p>
           </div>
 
@@ -468,7 +451,7 @@ export default function RitualsClient({ factors, userId, profile }: Props) {
                     startDrag({ stepId, source: 'library' })
                   }
                   onDragEnd={finishDragSession}
-                  onDragHandlePointerDown={
+                  onPointerDragStart={
                     disabled
                       ? undefined
                       : event =>
